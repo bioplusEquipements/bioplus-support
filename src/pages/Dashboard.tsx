@@ -339,6 +339,7 @@ function ClassicDashboard() {
                 </p>
               </div>
             ) : (
+              <>
               <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {assignedStats.pageItems.map((t) => (
                   <li key={t.id}>
@@ -388,6 +389,7 @@ function ClassicDashboard() {
                 pageSize={PAGE_SIZE}
                 onPageChange={setAssignedPage}
               />
+              </>
             )}
           </section>
         </>
@@ -445,6 +447,7 @@ function ClassicDashboard() {
               <p className="text-sm text-slate-500">Aucun ticket pour le moment.</p>
             </div>
           ) : (
+            <>
             <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
               {laboStats.pageItems.map((t) => (
                 <li key={t.id}>
@@ -474,6 +477,7 @@ function ClassicDashboard() {
               pageSize={PAGE_SIZE}
               onPageChange={setLaboPage}
             />
+            </>
           )}
         </>
       )}
