@@ -53,12 +53,23 @@ create table public.app_settings (
   updated_at timestamptz not null default now()
 );
 
+-- Destinataires des alertes critiques (notifications Brevo)
+create table public.alarm_recipients (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique check (email ~* '^.+@.+\..+$'),
+  statut text not null default 'en_attente' check (statut in ('en_attente', 'valide', 'refuse')),
+  created_by uuid references public.profiles (user_id) on delete set null,
+  created_at timestamptz not null default now(),
+  validated_at timestamptz
+);
+
 create table public.automates (
   id            uuid primary key default gen_random_uuid(),
   laboratoire_id uuid not null references public.laboratoires (id) on delete cascade,
   nom           text not null,
   modele        text,
   numero_serie  text,
+  photo_url     text,
   statut        text not null default 'actif'
                 check (statut in ('actif', 'maintenance', 'hors_service')),
   created_at    timestamptz not null default now()
@@ -184,6 +195,29 @@ create policy "app_settings_select"
   to authenticated
   using (true);
 
+alter table public.alarm_recipients enable row level security;
+
+create policy "alarm_recipients_select_admin"
+  on public.alarm_recipients for select
+  to authenticated
+  using (public.current_role() = 'admin');
+
+create policy "alarm_recipients_insert_admin"
+  on public.alarm_recipients for insert
+  to authenticated
+  with check (public.current_role() = 'admin');
+
+create policy "alarm_recipients_update_admin"
+  on public.alarm_recipients for update
+  to authenticated
+  using (public.current_role() = 'admin')
+  with check (public.current_role() = 'admin');
+
+create policy "alarm_recipients_delete_admin"
+  on public.alarm_recipients for delete
+  to authenticated
+  using (public.current_role() = 'admin');
+
 -- laboratoires : lecture pour tout utilisateur authentifié
 create policy "laboratoires_select_authenticated"
   on public.laboratoires for select
@@ -246,12 +280,13 @@ create policy "automates_update_manager"
     public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
   );
 
--- automates : suppression par responsable ou admin (n'importe quel laboratoire pour l'admin)
+-- automates : suppression par responsable (seulement son labo) ou admin (tous labos)
 create policy "automates_delete_manager"
   on public.automates for delete
   to authenticated
   using (
-    public.current_role() in ('responsable', 'admin')
+    (public.is_member_of(laboratoire_id) and public.current_role() = 'responsable')
+    or public.current_role() = 'admin'
   );
 
 -- tickets : lecture pour les membres du laboratoire, TOUS les techniciens BioPlus
@@ -402,6 +437,31 @@ create policy "photos_delete_own_labo"
     bucket_id = 'photos'
     and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
   );
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('machine-photos', 'machine-photos', true, 5242880, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+
+create policy "machine_photos_select"
+  on storage.objects for select
+  to authenticated
+  using (bucket_id = 'machine-photos');
+
+create policy "machine_photos_insert_admin"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+
+create policy "machine_photos_update_admin"
+  on storage.objects for update
+  to authenticated
+  using (bucket_id = 'machine-photos' and public.current_role() = 'admin')
+  with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+
+create policy "machine_photos_delete_admin"
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'machine-photos' and public.current_role() = 'admin');
 
 -- ---------------------------------------------------------------------------
 -- 5. DONNÉES DE DÉMO (optionnel — à retirer ou adapter en production)

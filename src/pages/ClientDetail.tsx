@@ -157,13 +157,22 @@ export default function ClientDetail() {
   async function onPhoto(e: React.ChangeEvent<HTMLInputElement>, automate: Automate) {
     const file = e.target.files?.[0];
     if (!file || !automate) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Seules les images JPEG/PNG/WebP sont autorisées.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image trop volumineuse (max 5 Mo).');
+      return;
+    }
     setUploadingId(automate.id);
     setError(null);
     try {
-      const path = `${automate.id}/${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`;
+      const safeName = file.name.replace(/[^\w.-]/g, '_');
+      const path = `${automate.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
       const { error: upErr } = await supabase.storage
         .from('machine-photos')
-        .upload(path, file, { upsert: true });
+        .upload(path, file, { upsert: false, contentType: file.type });
       if (upErr) throw new Error(upErr.message);
       const { data: pub } = supabase.storage.from('machine-photos').getPublicUrl(path);
       const { error: dbErr } = await supabase
