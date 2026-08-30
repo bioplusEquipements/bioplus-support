@@ -83,12 +83,15 @@ function ClassicDashboard() {
       .then(({ count }) => setOpenCount(count ?? 0));
   }, [profile?.role, live]);
 
-  // Poll every 5 seconds to refresh profile from database
+  const { session, setProfile } = useAuth();
+  // Poll every 5 seconds to refresh profile from database (picks up admin validation status change)
   useEffect(() => {
     const interval = setInterval(() => {
-      supabase.from("profiles").select("statut").eq("user_id", session?.user?.id).maybeSingle().then(({ data }) => {
-        if (data?.statut === "valide") setProfile(data as Profile | null);
-      });
+      if (session?.user?.id) {
+        supabase.from("profiles").select("statut").eq("user_id", session.user.id).maybeSingle().then(({ data }) => {
+          if (data?.statut === "valide") setProfile(data as Profile | null);
+        });
+      }
     }, 5000);
     return () => clearInterval(interval);
   }, []);
