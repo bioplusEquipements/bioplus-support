@@ -1,0 +1,28 @@
+name: Fix Automates RLS
+on: workflow_dispatch
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Fix automates_select_member - remove responsable
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+          supabase db query --linked <<'EOSQL'
+          drop policy if exists "automates_select_member" on public.automates;
+          create policy "automates_select_member" on public.automates
+            for select to authenticated
+            using (
+              public.is_member_of(laboratoire_id)
+              or public."current_role"() in ('admin', 'technicien')
+            );
+          EOSQL
+          echo "=== DONE ==="
+          supabase db query --linked <<'EOSQL'
+          select policyname, qual::text from pg_policies where tablename='automates' and policyname='automates_select_member';
+          EOSQL
