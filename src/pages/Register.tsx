@@ -64,7 +64,7 @@ export default function Register() {
             Votre demande d'inscription a bien été reçue. L'administration BioPlus doit valider votre laboratoire avant l'activation de votre accès.
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Contact : support@bioplus.tn · +216 71 000 000
+            Contact : m.dababi@hotmail.com · 227000017
           </p>
           <Link to="/login" className="btn-primary mt-4 w-full">
             Se connecter
