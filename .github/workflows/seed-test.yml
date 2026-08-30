@@ -89,16 +89,16 @@ jobs:
 
           -- 5. Verify everything
           SELECT '=== LABORATOIRES ===' as section;
-          SELECT id, nom, est_client FROM public.laboratoires WHERE id LIKE 'a0000000-%';
+          SELECT id, nom, est_client FROM public.laboratoires WHERE id::text LIKE 'a0000000-%';
 
           SELECT '=== AUTOMATES ===' as section;
-          SELECT id, nom, laboratoire_id FROM public.automates WHERE id LIKE 'b0000000-%';
+          SELECT id, nom, laboratoire_id FROM public.automates WHERE id::text LIKE 'b0000000-%';
 
           SELECT '=== PROFILES ===' as section;
           SELECT user_id, role, statut, full_name FROM public.profiles WHERE full_name LIKE 'Test %';
 
           SELECT '=== TICKETS ===' as section;
-          SELECT id, left(description,50) as desc50, message_erreur, code_erreur, photo_path, priorite, statut, technicien_id IS NOT NULL as has_tech FROM public.tickets;
+          SELECT id, left(coalesce(description,''),50) as desc50, message_erreur, code_erreur, photo_path, priorite, statut, technicien_id IS NOT NULL as has_tech FROM public.tickets;
 
           SELECT '=== ALL POLICIES ===' as section;
           SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname='public' ORDER BY tablename, policyname;
