@@ -1,0 +1,29 @@
+name: Assign Tickets to Technicien
+on: workflow_dispatch
+jobs:
+  assign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Assign tickets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+          supabase db query --linked <<'EOSQL'
+          UPDATE public.tickets
+          SET technicien_id = '1b62dd3f-e41e-4f60-9712-80fb78fb6da4'
+          WHERE id IN (
+            SELECT id FROM public.tickets
+            WHERE technicien_id IS NULL
+            ORDER BY created_at
+            LIMIT 2
+          );
+          EOSQL
+          echo "=== DONE ==="
+          supabase db query --linked <<'EOSQL'
+          select id, left(description,40) as desc40, technicien_id IS NOT NULL as assigned from public.tickets;
+          EOSQL
