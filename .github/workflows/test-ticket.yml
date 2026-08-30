@@ -1,0 +1,17 @@
+name: Test Ticket
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get service_role via API
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" https://api.supabase.com/v1/projects/bzodbqioldzdyupzoljx/api-keys | jq '.[] | select(.name=="service_role") | .api_key' -r > /tmp/service_key.txt
+          echo "Got service_role key length $(wc -c < /tmp/service_key.txt)"
+          SERVICE_KEY=$(cat /tmp/service_key.txt)
+          # Query tickets as service_role (bypasses RLS)
+          curl -s -H "apikey: $SERVICE_KEY" -H "Authorization: Bearer $SERVICE_KEY" "https://bzodbqioldzdyupzoljx.supabase.co/rest/v1/tickets?select=id,description,message_erreur,code_erreur,photo_path,priorite,statut,technicien_id&limit=3" | head -c 2000
+          echo ""
+          echo "Done"
