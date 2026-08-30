@@ -1,0 +1,17 @@
+name: Debug2
+on: workflow_dispatch
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+      - run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+          cat > /tmp/q.sql <<'EOSQL'
+          select count(*) as total_tickets from public.tickets;
+          select id, laboratoire_id, automate_id, left(description,30), left(message_erreur,20), photo_path, priorite, statut from public.tickets order by created_at desc limit 3;
+          EOSQL
+          supabase db query --file /tmp/q.sql --linked
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
