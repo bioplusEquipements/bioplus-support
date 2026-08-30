@@ -1,0 +1,108 @@
+name: Seed & Test Data
+on: workflow_dispatch
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Seed test data + verify
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+
+          cat > /tmp/seed.sql <<'EOSQL'
+          -- 1. Create test laboratoires
+          INSERT INTO public.laboratoires (id, nom, adresse, ville, telephone, est_client)
+          VALUES
+            ('a0000000-0000-0000-0000-000000000001', 'Lab Test Client 1', '10 rue Habib', 'Tunis', '+21671111111', true),
+            ('a0000000-0000-0000-0000-000000000002', 'Lab Test Client 2', '20 rue Farhat', 'Sfax', '+21674222222', true),
+            ('a0000000-0000-0000-0000-000000000003', 'BioPlus Service Tech', '30 rue Admin', 'Tunis', '+21671333333', false)
+          ON CONFLICT (id) DO NOTHING;
+
+          -- 2. Create test automates
+          INSERT INTO public.automates (id, laboratoire_id, nom, modele, numero_serie, statut)
+          VALUES
+            ('b0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000001', 'Pentra 60', 'Horiba ABX Pentra 60', 'SN-TEST-001', 'actif'),
+            ('b0000000-0000-0000-0000-000000000002', 'a0000000-0000-0000-0000-000000000002', 'Pentra 200', 'Horiba ABX Pentra 200', 'SN-TEST-002', 'actif')
+          ON CONFLICT (id) DO NOTHING;
+
+          -- 3. Create test profiles (use existing auth.users if available, otherwise create placeholders)
+          -- We'll insert profiles for any existing auth users first
+          INSERT INTO public.profiles (user_id, laboratoire_id, role, statut, is_super_admin, full_name)
+          SELECT
+            au.id,
+            'a0000000-0000-0000-0000-000000000001',
+            'responsable',
+            'valide',
+            false,
+            'Test Biologiste Lab1'
+          FROM auth.users au
+          WHERE au.email = 'test-biol@example.com'
+          ON CONFLICT (user_id) DO UPDATE SET role = 'responsable', statut = 'valide', full_name = 'Test Biologiste Lab1';
+
+          INSERT INTO public.profiles (user_id, laboratoire_id, role, statut, is_super_admin, full_name)
+          SELECT
+            au.id,
+            'a0000000-0000-0000-0000-000000000003',
+            'technicien',
+            'valide',
+            false,
+            'Test Technicien BioPlus'
+          FROM auth.users au
+          WHERE au.email = 'test-tech@example.com'
+          ON CONFLICT (user_id) DO UPDATE SET role = 'technicien', statut = 'valide', full_name = 'Test Technicien BioPlus';
+
+          -- 4. Now create test tickets using the biologist's user_id
+          -- First find the biologist user_id
+          DO $$
+          DECLARE
+            biol_user_id UUID;
+            tech_user_id UUID;
+          BEGIN
+            SELECT au.id INTO biol_user_id FROM auth.users au WHERE au.email = 'test-biol@example.com';
+            SELECT au.id INTO tech_user_id FROM auth.users au WHERE au.email = 'test-tech@example.com';
+
+            IF biol_user_id IS NULL THEN
+              RAISE NOTICE 'ERROR: test-biol@example.com not found in auth.users';
+              RETURN;
+            END IF;
+
+            -- Create tickets
+            INSERT INTO public.tickets (laboratoire_id, automate_id, numero_serie, message_erreur, code_erreur, description, photo_path, priorite, statut, technicien_id)
+            VALUES
+              ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'SN-TEST-001', 'WBC Clumped', '0x2A11',
+               'Le compteur de globules blancs affiche une erreur WBC Clumped depuis ce matin. Les prélèvements病人 patient 1 ont tous échoué. J''ai vérifié le réactif et il est encore valable.',
+               'a0000000-0000-0000-0000-000000000001/test-photo-1.jpg', 'important', 'ouvert', tech_user_id),
+              ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'SN-TEST-001', 'Erreur de calibration', '0x1B03',
+               'La machine ne parvient plus à se calibrer. Le level 1 est OK mais le level 2 échoue systématiquement depuis hier.',
+               NULL, 'critique', 'ouvert', NULL),
+              ('a0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000002', 'SN-TEST-002', 'Aspiration rate', NULL,
+               'L''aspirateur fait un bruit anormal et le débit est très lent. Impossible de traiter plus de 10 échantillons d''affilée.',
+               NULL, 'normal', 'ouvert', NULL);
+
+            RAISE NOTICE 'TICKETS CREATED: 3 test tickets inserted';
+          END $$;
+
+          -- 5. Verify everything
+          SELECT '=== LABORATOIRES ===' as section;
+          SELECT id, nom, est_client FROM public.laboratoires WHERE id LIKE 'a0000000-%';
+
+          SELECT '=== AUTOMATES ===' as section;
+          SELECT id, nom, laboratoire_id FROM public.automates WHERE id LIKE 'b0000000-%';
+
+          SELECT '=== PROFILES ===' as section;
+          SELECT user_id, role, statut, full_name FROM public.profiles WHERE full_name LIKE 'Test %';
+
+          SELECT '=== TICKETS ===' as section;
+          SELECT id, left(description,50) as desc50, message_erreur, code_erreur, photo_path, priorite, statut, technicien_id IS NOT NULL as has_tech FROM public.tickets;
+
+          SELECT '=== ALL POLICIES ===' as section;
+          SELECT tablename, policyname, cmd FROM pg_policies WHERE schemaname='public' ORDER BY tablename, policyname;
+          EOSQL
+
+          supabase db query --file /tmp/seed.sql --linked
+          echo "=== SEED COMPLETE ==="
