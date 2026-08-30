@@ -1,0 +1,32 @@
+name: Apply Full Fix
+on: workflow_dispatch
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Apply all critical fixes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+          cat > /tmp/fix.sql <<'EOSQL'
+          drop policy if exists "automates_delete_manager" on public.automates;
+          create policy "automates_delete_manager" on public.automates for delete to authenticated using ((public.is_member_of(laboratoire_id) and public.current_role() = 'responsable') or public.current_role() = 'admin');
+          create table if not exists public.alarm_recipients (id uuid primary key default gen_random_uuid(), email text not null unique check (email ~* '^.+@.+\..+$'), statut text not null default 'en_attente' check (statut in ('en_attente', 'valide', 'refuse')), created_by uuid references public.profiles (user_id) on delete set null, created_at timestamptz not null default now(), validated_at timestamptz);
+          alter table public.alarm_recipients enable row level security;
+          drop policy if exists "alarm_recipients_select_admin" on public.alarm_recipients; create policy "alarm_recipients_select_admin" on public.alarm_recipients for select to authenticated using (public.current_role() = 'admin');
+          drop policy if exists "alarm_recipients_insert_admin" on public.alarm_recipients; create policy "alarm_recipients_insert_admin" on public.alarm_recipients for insert to authenticated with check (public.current_role() = 'admin');
+          drop policy if exists "alarm_recipients_update_admin" on public.alarm_recipients; create policy "alarm_recipients_update_admin" on public.alarm_recipients for update to authenticated using (public.current_role() = 'admin') with check (public.current_role() = 'admin');
+          drop policy if exists "alarm_recipients_delete_admin" on public.alarm_recipients; create policy "alarm_recipients_delete_admin" on public.alarm_recipients for delete to authenticated using (public.current_role() = 'admin');
+          insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values ('machine-photos', 'machine-photos', true, 5242880, array['image/jpeg','image/png','image/webp']) on conflict (id) do update set public = true, file_size_limit = 5242880, allowed_mime_types = array['image/jpeg','image/png','image/webp'];
+          drop policy if exists "machine_photos_select" on storage.objects; create policy "machine_photos_select" on storage.objects for select to authenticated using (bucket_id = 'machine-photos');
+          drop policy if exists "machine_photos_insert_admin" on storage.objects; create policy "machine_photos_insert_admin" on storage.objects for insert to authenticated with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+          drop policy if exists "machine_photos_update_admin" on storage.objects; create policy "machine_photos_update_admin" on storage.objects for update to authenticated using (bucket_id = 'machine-photos' and public.current_role() = 'admin') with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+          drop policy if exists "machine_photos_delete_admin" on storage.objects; create policy "machine_photos_delete_admin" on storage.objects for delete to authenticated using (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+          EOSQL
+          supabase db query --file /tmp/fix.sql --linked
+          echo "All fixes applied"
