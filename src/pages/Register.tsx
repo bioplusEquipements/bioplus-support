@@ -59,12 +59,12 @@ export default function Register() {
         <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="card relative w-full max-w-md text-center">
           <Logo size={48} className="mx-auto" />
-          <h1 className="mt-3 text-lg font-bold text-slate-900">Demande envoyée</h1>
+          <h1 className="mt-3 text-lg font-bold text-slate-900">Compte en attente de validation</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Votre compte est enregistré. Il doit être <strong>validé par l'administration
-            BioPlus</strong> avant utilisation (création du laboratoire et activation de
-            l'accès). Vous pouvez vous connecter dès maintenant pour suivre l'état de votre
-            demande.
+            Votre demande d'inscription a bien été reçue. L'administration BioPlus doit valider votre laboratoire avant l'activation de votre accès.
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Contact : support@bioplus.tn · +216 71 000 000
           </p>
           <Link to="/login" className="btn-primary mt-4 w-full">
             Se connecter
