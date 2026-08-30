@@ -59,8 +59,7 @@ export default defineConfig({
             urlPattern: /\/index\.html$/,
             handler: 'NetworkFirst',
             options: {
-              cacheableResponse: { statuses: [0, 200] },
-              expiration: { maxEntries: 1 }
+              cacheableResponse: { statuses: [0, 200] }
             }
           }
         ]
