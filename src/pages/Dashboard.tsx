@@ -234,6 +234,17 @@ function ClassicDashboard() {
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       {renderHeader()}
 
+      <section className="mb-4 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-900 shadow-sm shadow-slate-900/5">
+        <video
+          src="/video_16faa126-dce6-406a-89f8-fbb330db42ce.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full"
+        />
+      </section>
+
       {modeError && (
         <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{modeError}</p>
       )}
