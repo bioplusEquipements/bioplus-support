@@ -39,13 +39,15 @@ function ClassicDashboard() {
 
   useEffect(() => {
     if (!profile?.laboratoire_id) return;
-    const opts =
-      profile.role === 'admin'
-        ? { event: '*', schema: 'public', table: 'tickets' }
-        : { event: '*', schema: 'public', table: 'tickets', filter: `laboratoire_id=eq.${profile.laboratoire_id}` };
     const channel = supabase
       .channel('dashboard-live')
-      .on('postgres_changes', opts, () => setLive((n) => n + 1))
+      .on(
+        'postgres_changes',
+        profile.role === 'admin'
+          ? { event: '*', schema: 'public', table: 'tickets' }
+          : { event: '*', schema: 'public', table: 'tickets', filter: `laboratoire_id=eq.${profile.laboratoire_id}` },
+        () => setLive((n) => n + 1)
+      )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);

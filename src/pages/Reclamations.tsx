@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { edge } from '../lib/edge';
-import { supabase, type Priorite, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
+import { supabase, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
 import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
 
