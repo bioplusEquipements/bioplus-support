@@ -134,7 +134,6 @@ export default function Reclamations() {
   const pageDispatcher = aDispatcher.slice(dispatcherStart, dispatcherStart + PAGE_SIZE);
   const suiviesStart = (page - 1) * PAGE_SIZE;
   const pageSuivies = suivies.slice(suiviesStart, suiviesStart + PAGE_SIZE);
-  const totalFiltered = filtered.length;
 
   function renderTicket(t: TicketWithAutomate, showLabo: boolean) {
     return (
