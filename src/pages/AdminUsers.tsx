@@ -166,6 +166,8 @@ export default function AdminUsers() {
       setError(error.message);
       return;
     }
+    // Refresh auth session to update profile with new statut
+    await supabase.auth.getSession();
     setApproving(null);
     setNotice(`Compte ${user.email} validé et rattaché au laboratoire.`);
     refresh();
