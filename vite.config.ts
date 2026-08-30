@@ -12,7 +12,6 @@ export default defineConfig({
       manifest: {
         name: 'BioPlus Support Automates',
         short_name: 'BioPlus',
-        version: '2.0.1',
         description: 'Support technique des automates Horiba ABX',
         lang: 'fr',
         theme_color: '#0f766e',
