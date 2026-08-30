@@ -23,5 +23,5 @@ jobs:
           create policy "photos_update_own_labo" on storage.objects for update to authenticated using (bucket_id='photos' and (public.is_member_of(public.uuid_or_null((storage.foldername(name))[1])) or public.current_role() in ('admin','technicien'))) with check (bucket_id='photos' and (public.is_member_of(public.uuid_or_null((storage.foldername(name))[1])) or public.current_role() in ('admin','technicien')));
           create policy "photos_delete_own_labo" on storage.objects for delete to authenticated using (bucket_id='photos' and (public.is_member_of(public.uuid_or_null((storage.foldername(name))[1])) or public.current_role() in ('admin','technicien')));
           EOSQL
-          supabase db execute --file /tmp/fix.sql --project-ref bzodbqioldzdyupzoljx
+          supabase db query --file /tmp/fix.sql --linked
           echo "Fix applied"
