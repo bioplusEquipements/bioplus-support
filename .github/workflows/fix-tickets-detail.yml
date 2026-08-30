@@ -22,8 +22,8 @@ jobs:
           create policy "automates_select_member" on public.automates
             for select to authenticated
             using (
-              is_member_of(laboratoire_id)
-              or current_role() in ('responsable', 'admin', 'technicien')
+              public.is_member_of(laboratoire_id)
+              or public."current_role"() in ('responsable', 'admin', 'technicien')
             );
 
           -- 3. Ensure tickets RLS is correct (admin+technician see all)
