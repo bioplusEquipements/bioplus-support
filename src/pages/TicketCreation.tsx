@@ -98,9 +98,14 @@ export default function TicketCreation() {
   }
 
   useEffect(() => {
+    if (!profile?.laboratoire_id) {
+      setLoading(false);
+      return;
+    }
     supabase
       .from('automates')
       .select('*')
+      .eq('laboratoire_id', profile.laboratoire_id)
       .order('nom')
       .then(({ data, error: err }) => {
         if (!err && data) {
@@ -114,7 +119,7 @@ export default function TicketCreation() {
         }
         setLoading(false);
       });
-  }, [preselectId]);
+  }, [preselectId, profile?.laboratoire_id]);
 
   useEffect(() => {
     if (!profile?.laboratoire_id) return;

@@ -261,7 +261,7 @@ create policy "automates_select_member"
   to authenticated
   using (
     public.is_member_of(laboratoire_id)
-    or public."current_role"() in ('responsable', 'admin', 'technicien')
+    or public."current_role"() in ('admin', 'technicien')
   );
 
 -- automates : ajout / modification par tout membre du laboratoire (biologiste, technicien)
