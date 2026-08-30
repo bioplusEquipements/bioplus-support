@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import HeroVideo from '../components/HeroVideo';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { edge } from '../lib/edge';
