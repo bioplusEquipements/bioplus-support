@@ -4,6 +4,7 @@ import { edge } from '../lib/edge';
 import { supabase, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
 import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
+import Pagination from '../components/Pagination';
 
 const STATUT_LABELS: Record<Statut, string> = {
   ouvert: 'Ouvert',
@@ -26,6 +27,8 @@ export default function Reclamations() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const refreshing = useRef(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   async function refresh() {
     if (refreshing.current) return;
@@ -104,6 +107,8 @@ export default function Reclamations() {
   const [prioriteFilter, setPrioriteFilter] = useState('');
   const [laboFilter, setLaboFilter] = useState('');
 
+  function resetPage() { setPage(1); }
+
   const filtered = tickets.filter((t) => {
     if (search) {
       const hay = `${t.message_erreur ?? ''} ${t.description ?? ''} ${t.automates?.nom ?? ''} ${t.laboratoire?.nom ?? ''} ${t.code_erreur ?? ''}`.toLowerCase();
@@ -124,6 +129,12 @@ export default function Reclamations() {
 
   const aDispatcher = filtered.filter((t) => !t.technicien_id && t.statut !== 'resolu');
   const suivies = filtered.filter((t) => t.technicien_id || t.statut === 'resolu');
+
+  const dispatcherStart = (page - 1) * PAGE_SIZE;
+  const pageDispatcher = aDispatcher.slice(dispatcherStart, dispatcherStart + PAGE_SIZE);
+  const suiviesStart = (page - 1) * PAGE_SIZE;
+  const pageSuivies = suivies.slice(suiviesStart, suiviesStart + PAGE_SIZE);
+  const totalFiltered = filtered.length;
 
   function renderTicket(t: TicketWithAutomate, showLabo: boolean) {
     return (
@@ -201,24 +212,24 @@ export default function Reclamations() {
       <div className="card mb-4 space-y-2">
         <input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); resetPage(); }}
           placeholder="Rechercher (machine, erreur, laboratoire, code...)"
           className="input w-full text-sm"
         />
         <div className="grid grid-cols-3 gap-2">
-          <select value={statutFilter} onChange={(e) => setStatutFilter(e.target.value)} className="input text-sm">
+          <select value={statutFilter} onChange={(e) => { setStatutFilter(e.target.value); resetPage(); }} className="input text-sm">
             <option value="">Statut</option>
             <option value="ouvert">Ouvert</option>
             <option value="en_cours">En cours</option>
             <option value="resolu">Résolu</option>
           </select>
-          <select value={prioriteFilter} onChange={(e) => setPrioriteFilter(e.target.value)} className="input text-sm">
+          <select value={prioriteFilter} onChange={(e) => { setPrioriteFilter(e.target.value); resetPage(); }} className="input text-sm">
             <option value="">Priorité</option>
             <option value="normal">Normal</option>
             <option value="important">Important</option>
             <option value="critique">Critique</option>
           </select>
-          <select value={laboFilter} onChange={(e) => setLaboFilter(e.target.value)} className="input text-sm">
+          <select value={laboFilter} onChange={(e) => { setLaboFilter(e.target.value); resetPage(); }} className="input text-sm">
             <option value="">Laboratoire</option>
             {labos.map((l) => (
               <option key={l.id} value={l.id}>{l.nom}</option>
@@ -232,6 +243,7 @@ export default function Reclamations() {
               setStatutFilter('');
               setPrioriteFilter('');
               setLaboFilter('');
+              resetPage();
             }}
             className="text-xs font-semibold text-teal-700"
           >
@@ -245,7 +257,8 @@ export default function Reclamations() {
           <h2 className="mb-2 text-sm font-bold text-red-700">
             À dispatcher ({aDispatcher.length})
           </h2>
-          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{aDispatcher.map((t) => renderTicket(t, true))}</ul>
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{pageDispatcher.map((t) => renderTicket(t, true))}</ul>
+          <Pagination page={page} totalItems={aDispatcher.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
         </section>
       )}
 
@@ -258,7 +271,10 @@ export default function Reclamations() {
             <p className="text-sm text-slate-500">Aucune réclamation suivie pour le moment.</p>
           </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{suivies.map((t) => renderTicket(t, true))}</ul>
+          <>
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{pageSuivies.map((t) => renderTicket(t, true))}</ul>
+            <Pagination page={page} totalItems={suivies.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </>
         )}
       </section>
     </div>

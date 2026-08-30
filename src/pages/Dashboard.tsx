@@ -14,6 +14,7 @@ import {
 } from '../lib/supabaseClient';
 import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
+import Pagination from '../components/Pagination';
 import CommandCenter from './CommandCenter';
 
 export default function Dashboard() {
@@ -36,6 +37,9 @@ function ClassicDashboard() {
   const [alarmPendingCount, setAlarmPendingCount] = useState<number | null>(null);
   const [live, setLive] = useState(0);
   const [modeError, setModeError] = useState<string | null>(null);
+  const [assignedPage, setAssignedPage] = useState(1);
+  const [laboPage, setLaboPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     if (!profile?.laboratoire_id) return;
@@ -144,6 +148,18 @@ function ClassicDashboard() {
     }
     return { byStatut, byPriorite, total: tickets.length };
   }, [tickets]);
+
+  const assignedStats = useMemo(() => {
+    const total = assigned.length;
+    const start = (assignedPage - 1) * PAGE_SIZE;
+    return { total, pageItems: assigned.slice(start, start + PAGE_SIZE) };
+  }, [assigned, assignedPage]);
+
+  const laboStats = useMemo(() => {
+    const total = tickets.length;
+    const start = (laboPage - 1) * PAGE_SIZE;
+    return { total, pageItems: tickets.slice(start, start + PAGE_SIZE) };
+  }, [tickets, laboPage]);
 
   async function handleLogout() {
     await signOut();
@@ -324,7 +340,7 @@ function ClassicDashboard() {
               </div>
             ) : (
               <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-                {assigned.map((t) => (
+                {assignedStats.pageItems.map((t) => (
                   <li key={t.id}>
                     <Link to={`/ticket/${t.id}`} className="card block transition hover:border-teal-600">
                       <div className="flex items-center justify-between gap-2">
@@ -366,6 +382,12 @@ function ClassicDashboard() {
                   </li>
                 ))}
               </ul>
+              <Pagination
+                page={assignedPage}
+                totalItems={assignedStats.total}
+                pageSize={PAGE_SIZE}
+                onPageChange={setAssignedPage}
+              />
             )}
           </section>
         </>
@@ -424,7 +446,7 @@ function ClassicDashboard() {
             </div>
           ) : (
             <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              {tickets.map((t) => (
+              {laboStats.pageItems.map((t) => (
                 <li key={t.id}>
                   <Link to={`/ticket/${t.id}`} className="card block transition hover:border-teal-600">
                     <div className="flex items-center justify-between gap-2">
@@ -446,6 +468,12 @@ function ClassicDashboard() {
                 </li>
               ))}
             </ul>
+            <Pagination
+              page={laboPage}
+              totalItems={laboStats.total}
+              pageSize={PAGE_SIZE}
+              onPageChange={setLaboPage}
+            />
           )}
         </>
       )}

@@ -13,6 +13,7 @@ import {
   type LaboStats
 } from '../lib/analytics';
 import Spinner from '../components/Spinner';
+import Pagination from '../components/Pagination';
 
 const PALETTES = [
   'from-teal-600 to-emerald-700',
@@ -49,6 +50,8 @@ export default function Clients() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const refreshing = useRef(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   async function refresh() {
     if (refreshing.current) return;
@@ -102,6 +105,9 @@ export default function Clients() {
       return hay.includes(q);
     });
   }, [stats, search]);
+
+  const pageStart = (page - 1) * PAGE_SIZE;
+  const pageItems = filtres.slice(pageStart, pageStart + PAGE_SIZE);
 
   const totalMachines = automates.length;
   const totalTickets = tickets.length;
@@ -348,7 +354,7 @@ export default function Clients() {
         type="search"
         placeholder="Rechercher un client (nom, ville, adresse)..."
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => { setSearch(e.target.value); setPage(1); }}
         className="input mb-3"
       />
 
@@ -363,7 +369,10 @@ export default function Clients() {
           <p className="text-sm text-slate-500">Aucun client ne correspond à « {search} ».</p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">{filtres.map((s, i) => clientCard(s, i))}</ul>
+        <>
+          <ul className="grid grid-cols-1 gap-3 lg:grid-cols-2">{pageItems.map((s, i) => clientCard(s, pageStart + i))}</ul>
+          <Pagination page={page} totalItems={filtres.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+        </>
       )}
 
       {topAutos.length > 0 && (
