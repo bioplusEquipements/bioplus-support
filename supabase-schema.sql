@@ -200,23 +200,23 @@ alter table public.alarm_recipients enable row level security;
 create policy "alarm_recipients_select_admin"
   on public.alarm_recipients for select
   to authenticated
-  using (public.current_role() = 'admin');
+  using (public."current_role"() = 'admin');
 
 create policy "alarm_recipients_insert_admin"
   on public.alarm_recipients for insert
   to authenticated
-  with check (public.current_role() = 'admin');
+  with check (public."current_role"() = 'admin');
 
 create policy "alarm_recipients_update_admin"
   on public.alarm_recipients for update
   to authenticated
-  using (public.current_role() = 'admin')
-  with check (public.current_role() = 'admin');
+  using (public."current_role"() = 'admin')
+  with check (public."current_role"() = 'admin');
 
 create policy "alarm_recipients_delete_admin"
   on public.alarm_recipients for delete
   to authenticated
-  using (public.current_role() = 'admin');
+  using (public."current_role"() = 'admin');
 
 -- laboratoires : lecture pour tout utilisateur authentifié
 create policy "laboratoires_select_authenticated"
@@ -247,19 +247,22 @@ grant update (full_name, preferences) on public.profiles to authenticated;
 create policy "profiles_select_admin"
   on public.profiles for select
   to authenticated
-  using (public.current_role() = 'admin');
+  using (public."current_role"() = 'admin');
 
 create policy "profiles_update_admin"
   on public.profiles for update
   to authenticated
-  using (public.current_role() = 'admin')
+  using (public."current_role"() = 'admin')
   with check (true);
 
--- automates : lecture pour les membres du laboratoire + l'admin (service technique BioPlus)
+-- automates : lecture pour les membres du laboratoire + admin + technicien (doivent voir les automates pour les détails des tickets)
 create policy "automates_select_member"
   on public.automates for select
   to authenticated
-  using (public.is_member_of(laboratoire_id) or public.current_role() = 'admin');
+  using (
+    public.is_member_of(laboratoire_id)
+    or public."current_role"() in ('responsable', 'admin', 'technicien')
+  );
 
 -- automates : ajout / modification par tout membre du laboratoire (biologiste, technicien)
 -- ou par l'admin (qui choisit le laboratoire propriétaire dans le formulaire)
@@ -267,17 +270,17 @@ create policy "automates_insert_manager"
   on public.automates for insert
   to authenticated
   with check (
-    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
+    public.is_member_of(laboratoire_id) or public."current_role"() = 'admin'
   );
 
 create policy "automates_update_manager"
   on public.automates for update
   to authenticated
   using (
-    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
+    public.is_member_of(laboratoire_id) or public."current_role"() = 'admin'
   )
   with check (
-    public.is_member_of(laboratoire_id) or public.current_role() = 'admin'
+    public.is_member_of(laboratoire_id) or public."current_role"() = 'admin'
   );
 
 -- automates : suppression par responsable (seulement son labo) ou admin (tous labos)
@@ -285,8 +288,8 @@ create policy "automates_delete_manager"
   on public.automates for delete
   to authenticated
   using (
-    (public.is_member_of(laboratoire_id) and public.current_role() = 'responsable')
-    or public.current_role() = 'admin'
+    (public.is_member_of(laboratoire_id) and public."current_role"() = 'responsable')
+    or public."current_role"() = 'admin'
   );
 
 -- tickets : lecture pour les membres du laboratoire, TOUS les techniciens BioPlus
@@ -296,7 +299,7 @@ create policy "tickets_select_member"
   to authenticated
   using (
     public.is_member_of(laboratoire_id)
-    or public.current_role() in ('admin', 'technicien')
+    or public."current_role"() in ('admin', 'technicien')
     or technicien_id = auth.uid()
   );
 
@@ -304,7 +307,7 @@ create policy "tickets_insert_member"
   on public.tickets for insert
   to authenticated
   with check (
-    public.is_member_of(laboratoire_id)
+    (public.is_member_of(laboratoire_id) or public."current_role"() = 'admin')
     and exists (
       select 1
       from public.automates a
@@ -318,6 +321,12 @@ create policy "tickets_insert_member"
     )
   );
 
+-- tickets : suppression par admin uniquement
+create policy "tickets_delete_admin"
+  on public.tickets for delete
+  to authenticated
+  using (public."current_role"() = 'admin');
+
 -- tickets : mise à jour par le membre du laboratoire, l'admin (assignation)
 -- et le technicien assigné (suivi du statut).
 create policy "tickets_update_member"
@@ -325,12 +334,12 @@ create policy "tickets_update_member"
   to authenticated
   using (
     public.is_member_of(laboratoire_id)
-    or public.current_role() = 'admin'
+    or public."current_role"() = 'admin'
     or technicien_id = auth.uid()
   )
   with check (
     public.is_member_of(laboratoire_id)
-    or public.current_role() = 'admin'
+    or public."current_role"() = 'admin'
     or technicien_id = auth.uid()
   );
 
@@ -358,7 +367,7 @@ create policy "interventions_select"
     where t.id = ticket_id
       and (
         public.is_member_of(t.laboratoire_id)
-        or public.current_role() in ('admin', 'technicien')
+        or public."current_role"() in ('admin', 'technicien')
         or t.technicien_id = auth.uid()
       )
   ));
@@ -371,7 +380,7 @@ create policy "interventions_insert"
     where t.id = ticket_id
       and (
         public.is_member_of(t.laboratoire_id)
-        or public.current_role() = 'admin'
+        or public."current_role"() = 'admin'
         or t.technicien_id = auth.uid()
       )
   ));
@@ -410,7 +419,7 @@ create policy "photos_insert_own_labo"
     bucket_id = 'photos'
     and (
       public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
-      or public.current_role() in ('admin','technicien')
+      or public."current_role"() in ('admin','technicien')
     )
   );
 
@@ -421,7 +430,7 @@ create policy "photos_select_own_labo"
     bucket_id = 'photos'
     and (
       public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
-      or public.current_role() in ('admin','technicien')
+      or public."current_role"() in ('admin','technicien')
     )
   );
 
@@ -432,14 +441,14 @@ create policy "photos_update_own_labo"
     bucket_id = 'photos'
     and (
       public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
-      or public.current_role() in ('admin','technicien')
+      or public."current_role"() in ('admin','technicien')
     )
   )
   with check (
     bucket_id = 'photos'
     and (
       public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
-      or public.current_role() in ('admin','technicien')
+      or public."current_role"() in ('admin','technicien')
     )
   );
 
@@ -450,7 +459,7 @@ create policy "photos_delete_own_labo"
     bucket_id = 'photos'
     and (
       public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
-      or public.current_role() in ('admin','technicien')
+      or public."current_role"() in ('admin','technicien')
     )
   );
 
@@ -466,18 +475,18 @@ create policy "machine_photos_select"
 create policy "machine_photos_insert_admin"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+  with check (bucket_id = 'machine-photos' and public."current_role"() = 'admin');
 
 create policy "machine_photos_update_admin"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'machine-photos' and public.current_role() = 'admin')
-  with check (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+  using (bucket_id = 'machine-photos' and public."current_role"() = 'admin')
+  with check (bucket_id = 'machine-photos' and public."current_role"() = 'admin');
 
 create policy "machine_photos_delete_admin"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'machine-photos' and public.current_role() = 'admin');
+  using (bucket_id = 'machine-photos' and public."current_role"() = 'admin');
 
 -- ---------------------------------------------------------------------------
 -- 5. DONNÉES DE DÉMO (optionnel — à retirer ou adapter en production)
