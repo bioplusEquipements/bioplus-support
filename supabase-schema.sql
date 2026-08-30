@@ -402,12 +402,16 @@ on conflict (id) do nothing;
 
 -- Un utilisateur ne peut manipuler que les fichiers du dossier de son laboratoire.
 -- Le premier segment du chemin (folder) est le laboratoire_id.
+-- Les techniciens et admins BioPlus voient toutes les photos (support).
 create policy "photos_insert_own_labo"
   on storage.objects for insert
   to authenticated
   with check (
     bucket_id = 'photos'
-    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+    and (
+      public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+      or public.current_role() in ('admin','technicien')
+    )
   );
 
 create policy "photos_select_own_labo"
@@ -415,7 +419,10 @@ create policy "photos_select_own_labo"
   to authenticated
   using (
     bucket_id = 'photos'
-    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+    and (
+      public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+      or public.current_role() in ('admin','technicien')
+    )
   );
 
 create policy "photos_update_own_labo"
@@ -423,11 +430,17 @@ create policy "photos_update_own_labo"
   to authenticated
   using (
     bucket_id = 'photos'
-    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+    and (
+      public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+      or public.current_role() in ('admin','technicien')
+    )
   )
   with check (
     bucket_id = 'photos'
-    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+    and (
+      public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+      or public.current_role() in ('admin','technicien')
+    )
   );
 
 create policy "photos_delete_own_labo"
@@ -435,7 +448,10 @@ create policy "photos_delete_own_labo"
   to authenticated
   using (
     bucket_id = 'photos'
-    and public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+    and (
+      public.is_member_of(public.uuid_or_null((storage.foldername(name))[1]))
+      or public.current_role() in ('admin','technicien')
+    )
   );
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
