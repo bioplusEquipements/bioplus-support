@@ -62,6 +62,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('user_id', session.user.id)
       .maybeSingle()
       .then(({ data }) => setProfile(data as Profile | null));
+
+    // Realtime subscription: refetch profile when it changes in the database
+    const channel = supabase
+      .channel('profile-changes')
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: 'user_id=eq.' + session.user.id
+      }, (_payload) => {
+        supabase.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setProfile(data as Profile | null));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [session?.user?.id]);
 
   async function signIn(email: string, password: string): Promise<void> {
