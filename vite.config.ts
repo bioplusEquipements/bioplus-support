@@ -27,7 +27,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        cacheId: 'bioplus-v2',
+        cacheId: 'bioplus-v3',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: 'index.html',
         skipWaiting: true,
@@ -53,6 +53,14 @@ export default defineConfig({
               networkTimeoutSeconds: 5,
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 }
+            }
+          },
+          {
+            urlPattern: /\/index\.html$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 1 }
             }
           }
         ]
