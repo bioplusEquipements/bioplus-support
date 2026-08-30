@@ -6,13 +6,7 @@ import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
 import { useGalacticos, setUiMode } from '../hooks/useGalacticos';
 import Logo from '../components/Logo';
-import {
-  supabase,
-  type Laboratoire,
-  type TicketWithAutomate,
-  type Statut,
-  type Priorite
-} from '../lib/supabaseClient';
+import { supabase, type Laboratoire, type TicketWithAutomate, type Statut, type Priorite } from '../lib/supabaseClient';
 import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
 import Pagination from '../components/Pagination';
@@ -89,18 +83,7 @@ function ClassicDashboard() {
       .then(({ count }) => setOpenCount(count ?? 0));
   }, [profile?.role, live]);
 
-  const { session, setProfile } = useAuth();
-  // Poll every 5 seconds to refresh profile from database (picks up admin validation status change)
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (session?.user?.id) {
-        supabase.from("profiles").select("statut").eq("user_id", session.user.id).maybeSingle().then(({ data }) => {
-          if (data?.statut === "valide") setProfile(data as Profile | null);
-        });
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
     if (!profile?.laboratoire_id) {
       setLoading(false);
       return;
@@ -233,17 +216,6 @@ function ClassicDashboard() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
       {renderHeader()}
-
-      <section className="mb-4 rounded-2xl overflow-hidden border border-slate-200/80 bg-slate-900 shadow-sm shadow-slate-900/5">
-        <video
-          src="/video_16faa126-dce6-406a-89f8-fbb330db42ce.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="w-full"
-        />
-      </section>
 
       {modeError && (
         <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{modeError}</p>
