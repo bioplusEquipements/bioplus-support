@@ -56,12 +56,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       return;
     }
-    supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-      .then(({ data }) => setProfile(data as Profile | null));
+    const fetchProfile = () => supabase.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setProfile(data as Profile | null));
+    fetchProfile();
 
     // Realtime subscription: refetch profile when it changes in the database
     const channel = supabase
@@ -71,13 +67,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         schema: 'public',
         table: 'profiles',
         filter: 'user_id=eq.' + session.user.id
-      }, (_payload) => {
-        supabase.from('profiles').select('*').eq('user_id', session.user.id).maybeSingle().then(({ data }) => setProfile(data as Profile | null));
-      })
+      }, fetchProfile)
       .subscribe();
+
+    // Polling fallback: refetch every 30 seconds in case Realtime is not configured
+    const pollInterval = setInterval(fetchProfile, 30000);
 
     return () => {
       supabase.removeChannel(channel);
+      clearInterval(pollInterval);
     };
   }, [session?.user?.id]);
 

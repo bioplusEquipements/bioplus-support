@@ -195,6 +195,10 @@ create policy "app_settings_select"
   to authenticated
   using (true);
 
+-- Supabase Realtime: enable real-time subscriptions on profiles table
+-- This allows the AuthContext to listen for statut changes (en_attente -> valide)
+alter publication supabase_realtime add table if not exists public.profiles;
+
 alter table public.alarm_recipients enable row level security;
 
 create policy "alarm_recipients_select_admin"

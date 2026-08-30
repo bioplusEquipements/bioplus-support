@@ -27,7 +27,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        cacheId: 'bioplus-v3',
+        cacheId: 'bioplus-v4',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         navigateFallback: 'index.html',
         skipWaiting: true,
