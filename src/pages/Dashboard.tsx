@@ -18,9 +18,12 @@ import Pagination from '../components/Pagination';
 import CommandCenter from './CommandCenter';
 
 export default function Dashboard() {
-  const isGalacticos = useGalacticos();
-  return isGalacticos ? <CommandCenter /> : <ClassicDashboard />;
-}
+  return (
+    <>
+      <HeroVideo />
+      {isGalacticos ? <CommandCenter /> : <ClassicDashboard />}
+    </>
+  );
 
 function ClassicDashboard() {
   const { profile, user, signOut } = useAuth();
