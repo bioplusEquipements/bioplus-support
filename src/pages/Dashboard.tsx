@@ -91,9 +91,7 @@ function ClassicDashboard() {
       });
     }, 5000);
     return () => clearInterval(interval);
-  }, [session?.user?.id]);
-
-  useEffect(() => {
+  }, []);
     if (!profile?.laboratoire_id) {
       setLoading(false);
       return;
