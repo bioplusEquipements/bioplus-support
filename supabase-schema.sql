@@ -489,6 +489,35 @@ create policy "machine_photos_delete_admin"
   using (bucket_id = 'machine-photos' and public."current_role"() = 'admin');
 
 -- ---------------------------------------------------------------------------
+-- 4c. TRIGGER : empêcher les responsables de modifier technicien_id et statut
+-- ---------------------------------------------------------------------------
+
+create or replace function public.prevent_responsable_ticket_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public."current_role"() = 'responsable' then
+    if NEW.technicien_id is distinct from OLD.technicien_id then
+      raise exception 'Vous ne pouvez pas modifier l''assignation du technicien.';
+    end if;
+    if NEW.statut is distinct from OLD.statut then
+      raise exception 'Vous ne pouvez pas changer le statut du ticket.';
+    end if;
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_prevent_responsable_ticket_update on public.tickets;
+create trigger trg_prevent_responsable_ticket_update
+  before update on public.tickets
+  for each row
+  execute function public.prevent_responsable_ticket_update();
+
+-- ---------------------------------------------------------------------------
 -- 5. DONNÉES DE DÉMO (optionnel — à retirer ou adapter en production)
 -- ---------------------------------------------------------------------------
 

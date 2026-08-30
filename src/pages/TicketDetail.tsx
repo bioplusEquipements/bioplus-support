@@ -6,22 +6,11 @@ import {
   type Statut,
   type TicketWithAutomate
 } from '../lib/supabaseClient';
+import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import { useAuth } from '../contexts/AuthContext';
 import { useGalacticos } from '../hooks/useGalacticos';
 import Spinner from '../components/Spinner';
 import IncidentEvent from './IncidentEvent';
-
-const STATUT_STYLES: Record<Statut, string> = {
-  ouvert: 'bg-blue-100 text-blue-800',
-  en_cours: 'bg-amber-100 text-amber-800',
-  resolu: 'bg-green-100 text-green-800'
-};
-
-const PRIORITE_STYLES: Record<'normal' | 'important' | 'critique', string> = {
-  normal: 'bg-slate-100 text-slate-700',
-  important: 'bg-amber-100 text-amber-800',
-  critique: 'bg-red-100 text-red-700'
-};
 
 export default function TicketDetail() {
   const isGalacticos = useGalacticos();
@@ -31,7 +20,7 @@ export default function TicketDetail() {
 function ClassicTicketDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -309,7 +298,7 @@ function ClassicTicketDetail() {
           </form>
         </div>
 
-        {user?.role === 'admin' && (
+        {profile?.role === 'admin' && (
           <button
             type="button"
             onClick={removeTicket}

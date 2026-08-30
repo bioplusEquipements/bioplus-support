@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 import Logo from '../components/Logo';
@@ -14,6 +15,11 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [showReset, setShowReset] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
 
   if (loading) return <Spinner label="Chargement..." />;
 
@@ -30,6 +36,21 @@ export default function Login() {
       setError(err instanceof Error ? err.message : 'Connexion impossible.');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResetPassword(e: FormEvent) {
+    e.preventDefault();
+    setResetBusy(true);
+    setResetMsg(null);
+    const { error: err } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}/login`
+    });
+    setResetBusy(false);
+    if (err) {
+      setResetMsg(err.message);
+    } else {
+      setResetSent(true);
     }
   }
 
@@ -77,6 +98,13 @@ export default function Login() {
             className="input"
             placeholder="••••••••"
           />
+          <button
+            type="button"
+            onClick={() => { setShowReset(true); setResetEmail(email); }}
+            className="mt-1 text-xs text-teal-200/80 hover:text-white"
+          >
+            Mot de passe oublié ?
+          </button>
         </div>
 
         {params.get('expired') === '1' && (
@@ -104,6 +132,54 @@ export default function Login() {
           S'inscrire via le QR code
         </Link>
       </p>
+
+      {showReset && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="card relative w-full max-w-sm space-y-3">
+            <button
+              type="button"
+              onClick={() => { setShowReset(false); setResetSent(false); setResetMsg(null); }}
+              className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+            >
+              ✕
+            </button>
+            {resetSent ? (
+              <>
+                <h2 className="text-base font-bold text-slate-900">Email envoyé</h2>
+                <p className="text-sm text-slate-600">
+                  Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setShowReset(false); setResetSent(false); }}
+                  className="btn-primary w-full"
+                >
+                  Retour à la connexion
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-3">
+                <h2 className="text-base font-bold text-slate-900">Réinitialiser le mot de passe</h2>
+                <p className="text-sm text-slate-600">
+                  Entrez votre adresse email pour recevoir un lien de réinitialisation.
+                </p>
+                <input
+                  type="email"
+                  required
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="input w-full"
+                  placeholder="votre@email.tn"
+                />
+                {resetMsg && <p className="text-sm text-red-600">{resetMsg}</p>}
+                <button type="submit" disabled={resetBusy} className="btn-primary w-full">
+                  {resetBusy ? 'Envoi...' : 'Envoyer le lien'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

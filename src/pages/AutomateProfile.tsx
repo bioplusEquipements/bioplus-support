@@ -51,21 +51,26 @@ export default function AutomateProfile() {
         .select('id, priorite, statut, created_at, updated_at, message_erreur, code_erreur, description')
         .eq('automate_id', id)
         .order('created_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('interventions')
-        .select('id, ticket_id, message, created_at')
-        .order('created_at', { ascending: false })
         .limit(50)
-    ]).then(([a, t, i]) => {
+    ]).then(async ([a, t]) => {
       if (a.error || !a.data) {
         setError('Automate introuvable ou accès refusé (RLS).');
       } else {
         setAutomate(a.data as Automate);
         setLabo((a.data as { laboratoire: { nom: string } | null }).laboratoire?.nom ?? null);
       }
-      setTickets((t.data as AutoTicket[] | null) ?? []);
-      setInterventions((i.data as AutoIntervention[] | null) ?? []);
+      const ticketList = (t.data as AutoTicket[] | null) ?? [];
+      setTickets(ticketList);
+      if (ticketList.length > 0) {
+        const ticketIds = ticketList.map((tk) => tk.id);
+        const { data: ivData } = await supabase
+          .from('interventions')
+          .select('id, ticket_id, message, created_at')
+          .in('ticket_id', ticketIds)
+          .order('created_at', { ascending: false })
+          .limit(50);
+        setInterventions((ivData as AutoIntervention[] | null) ?? []);
+      }
       setLoading(false);
     });
   }, [id]);
@@ -75,7 +80,6 @@ export default function AutomateProfile() {
     const lastIntervention = interventions[0]?.created_at ?? null;
     const health = healthFor(open, lastIntervention);
 
-    const ticketByAuto = new Set(tickets.map((t) => t.id));
     const timeline: { time: string; kind: 'ticket' | 'intervention'; color: string; label: string }[] =
       [];
     for (const t of tickets) {
@@ -87,14 +91,12 @@ export default function AutomateProfile() {
       });
     }
     for (const iv of interventions) {
-      if (ticketByAuto.has(iv.ticket_id)) {
-        timeline.push({
-          time: iv.created_at,
-          kind: 'intervention',
-          color: C.violet,
-          label: `Intervention — ${iv.message}`
-        });
-      }
+      timeline.push({
+        time: iv.created_at,
+        kind: 'intervention',
+        color: C.violet,
+        label: `Intervention — ${iv.message}`
+      });
     }
     timeline.sort((a, b) => (a.time < b.time ? 1 : -1));
 

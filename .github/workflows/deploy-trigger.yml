@@ -1,0 +1,42 @@
+name: Deploy RLS + Trigger Fix
+on: workflow_dispatch
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Apply trigger
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase link --project-ref bzodbqioldzdyupzoljx
+          supabase db query --linked <<'EOSQL'
+          create or replace function public.prevent_responsable_ticket_update()
+          returns trigger
+          language plpgsql
+          security definer
+          set search_path = public
+          as $$
+          begin
+            if public."current_role"() = 'responsable' then
+              if NEW.technicien_id is distinct from OLD.technicien_id then
+                raise exception 'Vous ne pouvez pas modifier l''assignation du technicien.';
+              end if;
+              if NEW.statut is distinct from OLD.statut then
+                raise exception 'Vous ne pouvez pas changer le statut du ticket.';
+              end if;
+            end if;
+            return NEW;
+          end;
+          $$;
+
+          drop trigger if exists trg_prevent_responsable_ticket_update on public.tickets;
+          create trigger trg_prevent_responsable_ticket_update
+            before update on public.tickets
+            for each row
+            execute function public.prevent_responsable_ticket_update();
+          EOSQL
+          echo "=== Trigger applied ==="

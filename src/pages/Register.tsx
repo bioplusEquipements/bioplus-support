@@ -10,6 +10,7 @@ export default function Register() {
     full_name: '',
     email: '',
     password: '',
+    password_confirm: '',
     laboratoire_nom: '',
     laboratoire_ville: '',
     laboratoire_adresse: '',
@@ -25,6 +26,11 @@ export default function Register() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    if (form.password !== form.password_confirm) {
+      setError('Les mots de passe ne correspondent pas.');
+      setBusy(false);
+      return;
+    }
     const { error: err } = await supabase.auth.signUp({
       email: form.email.trim(),
       password: form.password,
@@ -112,6 +118,18 @@ export default function Register() {
             placeholder="••••••••"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+            className="input w-full"
+          />
+        </div>
+        <div>
+          <label className="label">Confirmer le mot de passe</label>
+          <input
+            type="password"
+            required
+            minLength={6}
+            placeholder="••••••••"
+            value={form.password_confirm}
+            onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
             className="input w-full"
           />
         </div>

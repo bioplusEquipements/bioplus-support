@@ -1,26 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { supabase, type Automate, type Laboratoire, type TicketWithAutomate } from '../lib/supabaseClient';
+import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import { edge } from '../lib/edge';
 import { avgResolution, fmtDuration, type ClientUser } from '../lib/analytics';
 import Spinner from '../components/Spinner';
-
-const STATUT_STYLES: Record<string, string> = {
-  ouvert: 'bg-blue-100 text-blue-800',
-  en_cours: 'bg-amber-100 text-amber-800',
-  resolu: 'bg-green-100 text-green-800'
-};
 
 const STATUT_LABELS: Record<string, string> = {
   ouvert: 'Ouvert',
   en_cours: 'En cours',
   resolu: 'Résolu'
-};
-
-const PRIORITE_STYLES: Record<string, string> = {
-  normal: 'bg-slate-100 text-slate-700',
-  important: 'bg-amber-100 text-amber-800',
-  critique: 'bg-red-100 text-red-700'
 };
 
 const AUTO_STATUT_LABELS: Record<string, string> = {

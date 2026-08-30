@@ -8,24 +8,13 @@ import Logo from '../components/Logo';
 import {
   supabase,
   type Laboratoire,
-  type Priorite,
+  type TicketWithAutomate,
   type Statut,
-  type TicketWithAutomate
+  type Priorite
 } from '../lib/supabaseClient';
+import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
 import CommandCenter from './CommandCenter';
-
-const STATUT_STYLES: Record<Statut, string> = {
-  ouvert: 'bg-blue-100 text-blue-800',
-  en_cours: 'bg-amber-100 text-amber-800',
-  resolu: 'bg-green-100 text-green-800'
-};
-
-const PRIORITE_STYLES: Record<Priorite, string> = {
-  normal: 'bg-slate-100 text-slate-700',
-  important: 'bg-amber-100 text-amber-800',
-  critique: 'bg-red-100 text-red-700'
-};
 
 export default function Dashboard() {
   const isGalacticos = useGalacticos();
@@ -49,18 +38,19 @@ function ClassicDashboard() {
   const [modeError, setModeError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!profile?.laboratoire_id) return;
+    const opts =
+      profile.role === 'admin'
+        ? { event: '*', schema: 'public', table: 'tickets' }
+        : { event: '*', schema: 'public', table: 'tickets', filter: `laboratoire_id=eq.${profile.laboratoire_id}` };
     const channel = supabase
       .channel('dashboard-live')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tickets' },
-        () => setLive((n) => n + 1)
-      )
+      .on('postgres_changes', opts, () => setLive((n) => n + 1))
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [profile?.laboratoire_id, profile?.role]);
 
   useEffect(() => {
     if (profile?.role !== 'admin') return;

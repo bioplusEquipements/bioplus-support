@@ -2,24 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { edge } from '../lib/edge';
 import { supabase, type Priorite, type Statut, type TicketWithAutomate } from '../lib/supabaseClient';
+import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
 
 const STATUT_LABELS: Record<Statut, string> = {
   ouvert: 'Ouvert',
   en_cours: 'En cours',
   resolu: 'Résolu'
-};
-
-const STATUT_STYLES: Record<Statut, string> = {
-  ouvert: 'bg-blue-100 text-blue-800',
-  en_cours: 'bg-amber-100 text-amber-800',
-  resolu: 'bg-green-100 text-green-800'
-};
-
-const PRIORITE_STYLES: Record<Priorite, string> = {
-  normal: 'bg-slate-100 text-slate-700',
-  important: 'bg-amber-100 text-amber-800',
-  critique: 'bg-red-100 text-red-700'
 };
 
 interface Technicien {
@@ -69,7 +58,6 @@ export default function Reclamations() {
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, 30000);
     const channel = supabase
       .channel('reclamations-live')
       .on(
@@ -79,7 +67,6 @@ export default function Reclamations() {
       )
       .subscribe();
     return () => {
-      clearInterval(timer);
       supabase.removeChannel(channel);
     };
   }, []);

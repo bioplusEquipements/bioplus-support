@@ -19,7 +19,7 @@ const STATUT_LABELS: Record<Statut, string> = {
 export default function IncidentEvent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
 
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -386,7 +386,7 @@ export default function IncidentEvent() {
               </button>
               {saved && <span className="text-[11px] text-[#00FFA3]">Statut enregistré.</span>}
             </div>
-            {user?.role === 'admin' && (
+            {profile?.role === 'admin' && (
               <button
                 type="button"
                 onClick={removeTicket}
