@@ -140,30 +140,32 @@ export default function Reclamations() {
 
   function renderTicket(t: TicketWithAutomate, showLabo: boolean) {
     return (
-      <li key={t.id} className="card">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {t.automates?.nom ?? 'Automate supprimé'}
-              {showLabo && t.laboratoire?.nom ? ` · ${t.laboratoire.nom}` : ''}
-            </p>
-            <p className="truncate text-xs text-slate-500">
-              {t.message_erreur ?? t.description ?? 'Sans message'}
-            </p>
+      <li key={t.id}>
+        <Link to={`/ticket/${t.id}`} className="card block transition hover:border-teal-600">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900">
+                {t.automates?.nom ?? 'Automate supprimé'}
+                {showLabo && t.laboratoire?.nom ? ` · ${t.laboratoire.nom}` : ''}
+              </p>
+              <p className="truncate text-xs text-slate-500">
+                {t.message_erreur ?? t.description ?? 'Sans message'}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span className={`badge ${PRIORITE_STYLES[t.priorite]}`}>{t.priorite}</span>
+              <span className={`badge ${STATUT_STYLES[t.statut]}`}>{STATUT_LABELS[t.statut]}</span>
+            </div>
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
-            <span className={`badge ${PRIORITE_STYLES[t.priorite]}`}>{t.priorite}</span>
-            <span className={`badge ${STATUT_STYLES[t.statut]}`}>{STATUT_LABELS[t.statut]}</span>
-          </div>
-        </div>
-<div className="mt-3 flex gap-2">
+        </Link>
+        <div className="mt-3 flex gap-2 px-4 pb-4">
           <select
             value={t.technicien_id ?? ''}
             disabled={busyId === t.id}
             onChange={(e) => assign(t, e.target.value)}
             className="input flex-1 text-sm"
           >
-            <option value="">- � dispatcher -</option>
+            <option value="">- à dispatcher -</option>
             {techniciens.map((tech) => (
               <option key={tech.id} value={tech.id}>
                 {tech.full_name ?? tech.email}
@@ -180,7 +182,7 @@ export default function Reclamations() {
           </button>
         </div>
           {t.technicien && (
-            <p className="text-xs text-slate-500">
+            <p className="px-4 pb-3 text-xs text-slate-500">
               Assigné à : <strong>{t.technicien.full_name ?? 'Technicien BioPlus'}</strong>
             </p>
           )}

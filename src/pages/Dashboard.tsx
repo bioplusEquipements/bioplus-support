@@ -333,42 +333,44 @@ function ClassicDashboard() {
             ) : (
               <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                 {assigned.map((t) => (
-                  <li key={t.id} className="card">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {t.automates?.nom ?? 'Automate supprimé'}
-                        </p>
-                        <p className="truncate text-xs text-slate-500">
-                          {t.laboratoire?.nom ?? 'Laboratoire inconnu'} ·{' '}
-                          {t.message_erreur ?? t.description ?? 'Sans message'}
-                        </p>
+                  <li key={t.id}>
+                    <Link to={`/ticket/${t.id}`} className="card block transition hover:border-teal-600">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {t.automates?.nom ?? 'Automate supprimé'}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {t.laboratoire?.nom ?? 'Laboratoire inconnu'} ·{' '}
+                            {t.message_erreur ?? t.description ?? 'Sans message'}
+                          </p>
+                        </div>
+                        <span className={`badge shrink-0 ${PRIORITE_STYLES[t.priorite]}`}>
+                          {t.priorite}
+                        </span>
                       </div>
-                      <span className={`badge shrink-0 ${PRIORITE_STYLES[t.priorite]}`}>
-                        {t.priorite}
-                      </span>
-                    </div>
-                    <div className="mt-3 flex items-center justify-between gap-2">
-                      <span className={`badge ${STATUT_STYLES[t.statut]}`}>{t.statut}</span>
-                      <div className="flex gap-2">
-                        {t.statut === 'ouvert' && (
-                          <button
-                            onClick={() => setStatut(t, 'en_cours')}
-                            className="btn-outline px-2 py-1 text-xs"
-                          >
-                            Prendre en cours
-                          </button>
-                        )}
-                        {t.statut !== 'resolu' && (
-                          <button
-                            onClick={() => setStatut(t, 'resolu')}
-                            className="btn-primary px-2 py-1 text-xs"
-                          >
-                            Résoudre
-                          </button>
-                        )}
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <span className={`badge ${STATUT_STYLES[t.statut]}`}>{t.statut}</span>
+                        <div className="flex gap-2">
+                          {t.statut === 'ouvert' && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatut(t, 'en_cours'); }}
+                              className="btn-outline px-2 py-1 text-xs"
+                            >
+                              Prendre en cours
+                            </button>
+                          )}
+                          {t.statut !== 'resolu' && (
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatut(t, 'resolu'); }}
+                              className="btn-primary px-2 py-1 text-xs"
+                            >
+                              Résoudre
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </Link>
                   </li>
                 ))}
               </ul>
