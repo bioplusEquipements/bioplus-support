@@ -41,7 +41,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (!nextSession) setProfile(null);
+      if (!nextSession) {
+        setProfile(null);
+      } else {
+        supabase.from('profiles').select('*').eq('user_id', nextSession.user.id).maybeSingle().then(({ data }) => setProfile(data as Profile | null));
+      }
     });
 
     return () => listener.subscription.unsubscribe();
