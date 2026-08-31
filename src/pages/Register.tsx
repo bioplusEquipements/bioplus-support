@@ -64,7 +64,7 @@ export default function Register() {
             Votre demande d'inscription a bien été reçue. L'administration BioPlus doit valider votre laboratoire avant l'activation de votre accès.
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Contact : support@bioplus.tn · +216 71 000 000
+            Contact : m.dababi@hotmail.com · 22 700 001 7
           </p>
           <Link to="/login" className="btn-primary mt-4 w-full">
             Se connecter
@@ -156,7 +156,7 @@ export default function Register() {
           <div>
             <label className="label">Téléphone</label>
             <input
-              placeholder="+216 71 000 000"
+              placeholder="22 700 001 7"
               value={form.laboratoire_telephone}
               onChange={(e) => setForm({ ...form, laboratoire_telephone: e.target.value })}
               className="input w-full"

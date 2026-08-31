@@ -227,7 +227,7 @@ function ClassicDashboard() {
             valider votre laboratoire avant l'activation de votre accès.
           </p>
           <p className="mt-2 text-xs text-amber-700">
-            Contact : support@bioplus.tn · +216 71 000 000
+            Contact : m.dababi@hotmail.com · 22 700 001 7
           </p>
         </div>
       )}
