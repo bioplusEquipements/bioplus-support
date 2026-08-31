@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import HeroVideo from '../components/HeroVideo';
 import { Link, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { edge } from '../lib/edge';
@@ -16,7 +15,6 @@ export default function Dashboard() {
   const isGalacticos = useGalacticos();
   return (
     <>
-      <HeroVideo />
       {isGalacticos ? <CommandCenter /> : <ClassicDashboard />}
     </>
   );
