@@ -77,11 +77,18 @@ jobs:
                 break
               fi
 
-              i=0
-              while [ "$i" -lt "$n" ]; do
-                name=$(printf '%s' "$resp" | jq -r ".[$i].name")
-                i=$((i + 1))
+              # La liste contient aussi des repertoires (id null) et des tombstones
+              # (is_delete_marker). Les deux repondent 400 sur les endpoints de
+              # telechchargement : ce ne sont pas des fichiers, on les ecarte.
+              tombstones=$(printf '%s' "$resp" | jq '[.[] | select(.is_delete_marker == true)] | length')
+              names=$(printf '%s' "$resp" \
+                | jq -r '.[] | select(.id != null) | select(.is_delete_marker != true) | .name')
 
+              if [ "$tombstones" -gt 0 ]; then
+                echo "${tombstones} tombstone(s) ignore(s) (objets supprimes)."
+              fi
+
+              while IFS= read -r name; do
                 [ -z "$name" ] && continue
 
                 dest="storage/${bucket}/$(encode_path "$name")"
@@ -137,8 +144,12 @@ jobs:
           fi
 
           if [ "$total" -eq 0 ]; then
-            echo "::warning::Aucun objet trouve. Soit les buckets sont vides, soit la"
-            echo "::warning::cle service_role est invalide. Verifier avant de conclure."
+            echo "::warning::Aucun fichier telecharge. Deux causes possibles :"
+            echo "::warning::  1. les buckets sont reellement vides (ou ne contiennent"
+            echo "::warning::     que des tombstones d'objets supprimes) ;"
+            echo "::warning::  2. la cle service_role est invalide ou expiree."
+            echo "::warning::Pour trancher : voir le nombre de tombstones ci-dessus."
+            echo "::warning::Si c'est 0 et 0 fichier, la cle est probablement mauvaise."
           fi
 
           if [ "$failures" -gt 0 ]; then
