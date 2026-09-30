@@ -37,29 +37,72 @@ Deno.serve(async (req) => {
     return json({ error: "Accès réservé à l'administrateur BioPlus." }, 403);
   }
 
-  const { email, password, laboratoire_id, role, full_name } = await req.json();
+  const {
+    email,
+    password,
+    laboratoire_id,
+    role,
+    full_name,
+    create_labo,
+    laboratoire_nom,
+    laboratoire_ville,
+    laboratoire_adresse,
+    laboratoire_telephone
+  } = await req.json();
   if (!email || !password) return json({ error: 'Email et mot de passe requis.' }, 400);
-  if (password.length < 6) return json({ error: 'Mot de passe : 6 caractères minimum.' }, 400);
-  if (!ROLES.includes(role)) return json({ error: 'Rôle invalide.' }, 400);
+  if (password.length < 6) return json({ error: 'Mot de passe : 6 caracteres minimum.' }, 400);
+  if (!ROLES.includes(role)) return json({ error: 'Role invalide.' }, 400);
 
   if (role === 'admin' && callerProfile?.is_super_admin !== true) {
     return json(
-      { error: 'Seul le super administrateur peut créer des comptes admin.' },
+      { error: 'Seul le super administrateur peut creer des comptes admin.' },
       403
     );
   }
 
-  // Seul un responsable (client) est rattaché à un laboratoire :
+  // Seul un responsable (client) est rattache a un laboratoire :
   // technicien et admin sont du personnel BioPlus, jamais clients.
-  const finalLabo = role === 'responsable' ? (laboratoire_id ?? null) : null;
+  let finalLabo = role === 'responsable' ? (laboratorio_id ?? null) : null;
 
-  if (finalLabo) {
+  if (role === 'responsable' && finalLabo) {
     const { data: labo } = await admin
       .from('laboratoires')
       .select('id')
       .eq('id', finalLabo)
       .maybeSingle();
     if (!labo) return json({ error: 'Laboratoire introuvable.' }, 400);
+  }
+
+  if (role === 'responsable' && !finalLabo) {
+    // Sans laboratoire choisi, l'admin peut demander la creation du laboratoire
+    // a partir des informations saisies : meme option que sur la validation.
+    if (create_labo !== true) {
+      return json(
+        {
+          error:
+            "Choisissez un laboratoire existant ou cochez 'Creer un nouveau laboratoire avec les informations fournies'.",
+        },
+        400
+      );
+    }
+    const nom = String(laboratoire_nom ?? '').trim();
+    if (!nom) return json({ error: 'Nom du laboratoire requis.' }, 400);
+
+    const { data: labo, error: laboErr } = await admin
+      .from('laboratoires')
+      .insert({
+        nom,
+        ville: String(laboratoire_ville ?? '').trim() || null,
+        adresse: String(laboratoire_adresse ?? '').trim() || null,
+        telephone: String(laboratoire_telephone ?? '').trim() || null,
+        // explicite plutot que de laisser confiance au default de la colonne :
+        // ce laboratoire doit apparaitre dans le portefeuille clients.
+        est_client: true
+      })
+      .select('id')
+      .single();
+    if (laboErr) return json({ error: laboErr.message }, 500);
+    finalLabo = labo.id;
   }
 
   const { data, error } = await admin.auth.admin.createUser({

@@ -33,6 +33,14 @@ const ROLE_STYLES: Record<Role, string> = {
   technicien: 'bg-slate-100 text-slate-700'
 };
 
+interface CreateForm {
+  email: string;
+  password: string;
+  full_name: string;
+  laboratoire_id: string;
+  role: Role;
+}
+
 export default function AdminUsers() {
   const { profile } = useAuth();
   const [users, setUsers] = useState<ManagedUser[] | null>(null);
@@ -50,13 +58,26 @@ export default function AdminUsers() {
   const callerIsSuper = profile?.is_super_admin === true;
   const isAdminAccount = (u: ManagedUser) => u.role === 'admin' && !u.is_super_admin;
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<CreateForm>({
     email: '',
     password: '',
     full_name: '',
     laboratoire_id: '',
-    role: 'technicien' as Role
+    role: 'technicien'
   });
+  const [createLabo, setCreateLabo] = useState(false);
+  const [newLabo, setNewLabo] = useState({
+    nom: '',
+    ville: '',
+    adresse: '',
+    telephone: ''
+  });
+
+  function resetCreateForm() {
+    setForm({ email: '', password: '', full_name: '', laboratoire_id: '', role: 'technicien' });
+    setCreateLabo(false);
+    setNewLabo({ nom: '', ville: '', adresse: '', telephone: '' });
+  }
 
   async function refresh() {
     setLoading(true);
@@ -90,16 +111,22 @@ export default function AdminUsers() {
       password: form.password,
       full_name: form.full_name.trim() || null,
       laboratoire_id: form.laboratoire_id || null,
-      role: form.role
+      role: form.role,
+      create_labo: form.role === 'responsable' ? createLabo : false,
+      laboratoire_nom: newLabo.nom.trim() || null,
+      laboratoire_ville: newLabo.ville.trim() || null,
+      laboratoire_adresse: newLabo.adresse.trim() || null,
+      laboratoire_telephone: newLabo.telephone.trim() || null
     });
     setBusy(false);
     if (error) {
       setError(error.message);
       return;
     }
+    const laboCree = form.role === 'responsable' && createLabo ? ` et le laboratoire « ${newLabo.nom.trim()} »` : '';
     setShowCreate(false);
-    setForm({ email: '', password: '', full_name: '', laboratoire_id: '', role: 'technicien' });
-    setNotice(`Compte ${form.email} créé.`);
+    resetCreateForm();
+    setNotice(`Compte ${form.email} créé${laboCree}.`);
     refresh();
   }
 
@@ -478,18 +505,77 @@ export default function AdminUsers() {
               {callerIsSuper && <option value="admin">Administrateur (BioPlus)</option>}
             </select>
             {form.role === 'responsable' && (
-              <select
-                value={form.laboratoire_id}
-                onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
-                className="input w-full"
-              >
-                <option value="">— Choisir le laboratoire du client —</option>
-                {laboratoires.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.nom}
-                  </option>
-                ))}
-              </select>
+              <>
+                <label className="flex items-start gap-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={createLabo}
+                    onChange={(e) => setCreateLabo(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-teal-700"
+                  />
+                  Créer un nouveau laboratoire avec les informations fournies
+                </label>
+
+                {createLabo ? (
+                  <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs text-slate-500">
+                      Le laboratoire sera créé et ce compte y sera rattaché.
+                    </p>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nom du laboratoire (obligatoire)"
+                      value={newLabo.nom}
+                      onChange={(e) => setNewLabo({ ...newLabo, nom: e.target.value })}
+                      className="input w-full"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ville"
+                        value={newLabo.ville}
+                        onChange={(e) => setNewLabo({ ...newLabo, ville: e.target.value })}
+                        className="input w-full"
+                      />
+                      <input
+                        type="tel"
+                        placeholder="Téléphone"
+                        value={newLabo.telephone}
+                        onChange={(e) => setNewLabo({ ...newLabo, telephone: e.target.value })}
+                        className="input w-full"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Adresse"
+                      value={newLabo.adresse}
+                      onChange={(e) => setNewLabo({ ...newLabo, adresse: e.target.value })}
+                      className="input w-full"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {laboratoires.length === 0 ? (
+                      <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        Aucun laboratoire client n'existe encore. Cochez la case ci-dessus pour
+                        créer le laboratoire en même temps que le compte.
+                      </p>
+                    ) : null}
+                    <select
+                      value={form.laboratoire_id}
+                      onChange={(e) => setForm({ ...form, laboratoire_id: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="">— Choisir le laboratoire du client —</option>
+                      {laboratoires.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                )}
+              </>
             )}
             {form.role !== 'responsable' && (
               <p className="rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-500">
@@ -510,7 +596,11 @@ export default function AdminUsers() {
             <div className="flex gap-2">
               <button
                 type="submit"
-                disabled={busy || (form.role === 'responsable' && !form.laboratoire_id)}
+                disabled={
+                  busy ||
+                  (form.role === 'responsable' && !createLabo && !form.laboratoire_id) ||
+                  (form.role === 'responsable' && createLabo && !newLabo.nom.trim())
+                }
                 className="btn-primary flex-1"
               >
                 {busy ? 'Création...' : 'Créer le compte'}
