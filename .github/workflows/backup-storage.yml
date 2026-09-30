@@ -1,0 +1,250 @@
+name: Backup Supabase Storage
+
+# Sauvegarde les objets des buckets Storage (photos de tickets, photos d'automates).
+# Complementaire a backup.yml, qui ne dumpe QUE le schema public : aucune photo,
+# aucun compte auth. Sur le plan Free, Supabase ne sauvegarde rien d'autre.
+
+on:
+  schedule:
+    # dimanche 03:37 UTC, decale de 10 min par rapport a backup.yml (02:00)
+    - cron: '37 3 * * 0'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: Telecharger les buckets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Lister et telecharger
+        id: dl
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          PROJECT_REF: bzodbqioldzdyupzoljx
+        run: |
+          set -uo pipefail
+
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SERVICE_ROLE" ]; then
+            echo "::error::Secrets VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY absents."
+            exit 1
+          fi
+
+          mkdir -p storage out
+          : > out/objects.tsv
+          total=0
+          failures=0
+
+          # Encode un chemin Storage en preservant les separateurs "/" de la arborescence.
+          encode_path() {
+            local p="$1" out="" seg
+            local IFS='/'
+            for seg in $p; do
+              [ -n "$seg" ] && out="${out}$(printf '%s' "$seg" | jq -sRr @uri)/"
+            done
+            printf '%s' "${out%/}"
+          }
+
+          for bucket in photos machine-photos; do
+            echo "::group::bucket ${bucket}"
+            offset=0
+            page=0
+            bucket_count=0
+
+            while : ; do
+              page=$((page + 1))
+              body=$(jq -nc --argjson offset "$offset" \
+                '{prefix:"", limit:1000, offset:$offset, delimiter:""}')
+
+              resp=$(curl -sS -X POST \
+                "${SUPABASE_URL}/storage/v1/object/list/${bucket}" \
+                -H "apikey: ${SERVICE_ROLE}" \
+                -H "Authorization: Bearer ${SERVICE_ROLE}" \
+                -H "Content-Type: application/json" \
+                --max-time 60 -d "$body") || { echo "::error::list ${bucket} echoue"; failures=$((failures+1)); break; }
+
+              echo "$resp" > "storage/${bucket}-list-${page}.json"
+
+              n=$(printf '%s' "$resp" | jq 'if type == "array" then length else 0 end')
+              if [ "$n" -eq 0 ]; then
+                break
+              fi
+
+              i=0
+              while [ "$i" -lt "$n" ]; do
+                name=$(printf '%s' "$resp" | jq -r ".[$i].name")
+                i=$((i + 1))
+
+                [ -z "$name" ] && continue
+
+                dest="storage/${bucket}/$(encode_path "$name")"
+                mkdir -p "$(dirname "$dest")"
+
+                code=$(curl -sS -o "$dest" -w '%{http_code}' \
+                  "${SUPABASE_URL}/storage/v1/object/${bucket}/$(encode_path "$name")" \
+                  -H "apikey: ${SERVICE_ROLE}" \
+                  -H "Authorization: Bearer ${SERVICE_ROLE}" \
+                  --max-time 120) || true
+
+                if [ "$code" != "200" ]; then
+                  echo "::error::telechargement echoue (${code}) ${bucket}/${name}"
+                  rm -f "$dest"
+                  failures=$((failures + 1))
+                  continue
+                fi
+
+                # La reponse "list" ne fournit pas metadata.size : on mesure le
+                # fichier telecharge, et un octet a zero est une erreur.
+                got=$(stat -c%s "$dest" 2>/dev/null || echo 0)
+                if [ "$got" -eq 0 ]; then
+                  echo "::error::fichier vide au telechargement ${bucket}/${name}"
+                  rm -f "$dest"
+                  failures=$((failures + 1))
+                  continue
+                fi
+
+                printf '%s\t%s\t%s\n' "$bucket" "$name" "$got" >> out/objects.tsv
+                bucket_count=$((bucket_count + 1))
+                total=$((total + 1))
+              done
+
+              offset=$((offset + n))
+              [ "$n" -lt 1000 ] && break
+            done
+
+            echo "${bucket} : ${bucket_count} objet(s) sur ${page} page(s) de listing"
+            echo "::endgroup::"
+          done
+
+          # Manifeste de reference, construit depuis les fichiers reellement
+          # telecharges (la reponse "list" ne donne ni le bucket ni la taille).
+          if [ -s out/objects.tsv ]; then
+            jq -Rsn '[inputs
+                     | select(length > 0)
+                     | split("\t")
+                     | select(length == 3 and .[2] != null)
+                     | {bucket: .[0], path: .[1], size: (.[2] | tonumber)}]' \
+              out/objects.tsv > out/manifest-storage.json
+          else
+            echo '[]' > out/manifest-storage.json
+          fi
+
+          if [ "$total" -eq 0 ]; then
+            echo "::warning::Aucun objet trouve. Soit les buckets sont vides, soit la"
+            echo "::warning::cle service_role est invalide. Verifier avant de conclure."
+          fi
+
+          if [ "$failures" -gt 0 ]; then
+            echo "::error::${failures} echec(s) de telechchargement sur ${total} objet(s)."
+            exit 1
+          fi
+
+          echo "Telechargement termine : ${total} objet(s)."
+          echo "total=${total}" >> "$GITHUB_OUTPUT"
+
+      - name: Archiver et (eventuellement) chiffrer
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          cd storage
+          zip -r -q "../out/storage-$(date -u +%Y%m%dT%H%M%SZ).zip" . -x "*-list-*.json"
+          cd ..
+
+          archive=$(ls -1 out/storage-*.zip | head -n 1)
+
+          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+              -in "$archive" -out "${archive}.enc" -pass env:BACKUP_PASSPHRASE
+            rm -f "$archive"
+            echo "Archive CHIFFREE (aes-256-cbc)."
+          else
+            echo "::warning::BACKUP_PASSPHRASE absent : archive envoyee en CLAIR."
+            echo "::warning::Ce repo est public : les artifacts sont telechargeables par"
+            echo "::warning::tout compte GitHub. A chiffrer si les photos sont sensibles."
+          fi
+
+          ls -la out/
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-storage-${{ github.run_id }}
+          path: out/
+          retention-days: 90
+
+      - name: Ouvrir l'issue d'incident
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[URGENT] Backup Supabase Storage en echec';
+            const body = [
+              'Le telechargement des buckets Storage a echoue.',
+              '',
+              `- Run : ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              'Consequence : les photos de tickets et d\'automates ne sont PAS',
+              'sauvegardees tant que ce run n\'est pas passe au vert.',
+              '',
+              '_Cloture automatique au prochain run reussi._',
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            const found = existing.data.find((i) => i.title === title);
+
+            if (found) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: found.number,
+                body: `Toujours en echec.\n\n${body}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
+
+      - name: Cloturer l'incident si le backup est passe
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[URGENT] Backup Supabase Storage en echec';
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            for (const issue of open.filter((i) => i.title === title)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Backup Storage passe au vert le ${new Date().toISOString()}.`,
+              });
+            }
