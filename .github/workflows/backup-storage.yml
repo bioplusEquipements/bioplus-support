@@ -166,21 +166,31 @@ jobs:
         run: |
           set -euo pipefail
 
-          cd storage
-          zip -r -q "../out/storage-$(date -u +%Y%m%dT%H%M%SZ).zip" . -x "*-list-*.json"
-          cd ..
-
-          archive=$(ls -1 out/storage-*.zip | head -n 1)
-
-          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
-            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
-              -in "$archive" -out "${archive}.enc" -pass env:BACKUP_PASSPHRASE
-            rm -f "$archive"
-            echo "Archive CHIFFREE (aes-256-cbc)."
+          # Buckets vides => zip n'a rien a faire et sort en erreur 12.
+          # On n'archive que s'il y a reellement des fichiers.
+          if [ -n "$(find storage -type f -not -name '*-list-*.json' -print -quit)" ]; then
+            cd storage
+            zip -r -q "../out/storage-$(date -u +%Y%m%dT%H%M%SZ).zip" . -x "*-list-*.json"
+            cd ..
+            echo "Archive generee."
           else
-            echo "::warning::BACKUP_PASSPHRASE absent : archive envoyee en CLAIR."
-            echo "::warning::Ce repo est public : les artifacts sont telechargeables par"
-            echo "::warning::tout compte GitHub. A chiffrer si les photos sont sensibles."
+            echo "::warning::Aucun fichier a archiver : buckets vides."
+            echo "::warning::Seul le manifeste est produit. Rien n'est perdu, il n'y avait rien."
+          fi
+
+          archive=$(ls -1 out/storage-*.zip 2>/dev/null | head -n 1 || true)
+
+          if [ -n "$archive" ]; then
+            if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
+              openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+                -in "$archive" -out "${archive}.enc" -pass env:BACKUP_PASSPHRASE
+              rm -f "$archive"
+              echo "Archive CHIFFREE (aes-256-cbc)."
+            else
+              echo "::warning::BACKUP_PASSPHRASE absent : archive envoyee en CLAIR."
+              echo "::warning::Ce repo est public : les artifacts sont telechargeables par"
+              echo "::warning::tout compte GitHub. A chiffrer si les photos sont sensibles."
+            fi
           fi
 
           ls -la out/
