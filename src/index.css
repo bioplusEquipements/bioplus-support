@@ -18,7 +18,9 @@
 
   --ink: 28 26 23;
   --ink-soft: 87 83 78;
-  --ink-mute: 138 133 128;
+  /* AA exige 4.5:1 sur le fond le plus defavorable (--canvas).
+     #8a8580 ne faisait que 3.38:1 : trop clair pour du texte secondaire. */
+  --ink-mute: 107 102 96;
 
   --brand: 15 118 110;
   --brand-strong: 11 93 87;

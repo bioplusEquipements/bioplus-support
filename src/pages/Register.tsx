@@ -76,12 +76,12 @@ export default function Register() {
 
   return (
     <div className="auth-bg">
-      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand-soft blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-brand-soft blur-3xl" />
       <div className="relative mb-6 flex flex-col items-center">
-        <Logo size={56} className="drop-shadow-lg" />
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">BioPlus Support</h1>
-        <p className="text-xs font-medium text-teal-100">
+        <Logo size={56} />
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-ink">BioPlus Support</h1>
+        <p className="text-xs font-medium text-ink-soft">
           Inscription de votre laboratoire — validation par BioPlus
         </p>
       </div>
@@ -177,7 +177,7 @@ export default function Register() {
         </button>
         <p className="text-center text-xs text-slate-500">
           Déjà un compte ?{' '}
-          <Link to="/login" className="font-semibold text-teal-700">
+          <Link to="/login" className="font-semibold text-brand-ink">
             Se connecter
           </Link>
         </p>

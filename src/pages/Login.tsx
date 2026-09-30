@@ -57,13 +57,13 @@ export default function Login() {
 
   return (
     <div className="auth-bg">
-      <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-emerald-300/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-brand-soft blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-brand-soft blur-3xl" />
 
       <div className="relative mb-8 flex flex-col items-center">
-        <Logo size={64} className="drop-shadow-lg" />
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">BioPlus Support</h1>
-        <p className="mt-1 text-sm font-medium text-teal-100">
+        <Logo size={64} />
+        <h1 className="mt-4 text-3xl font-bold tracking-tight text-ink">BioPlus Support</h1>
+        <p className="mt-1 text-sm font-medium text-ink-soft">
           Support technique — automates Horiba ABX
         </p>
       </div>
@@ -102,7 +102,7 @@ export default function Login() {
           <button
             type="button"
             onClick={() => { setShowReset(true); setResetEmail(email); }}
-            className="mt-1 text-xs text-teal-200/80 hover:text-white"
+            className="mt-1 text-xs font-medium text-brand-ink hover:underline"
           >
             Mot de passe oublié ?
           </button>
@@ -124,12 +124,15 @@ export default function Login() {
         </button>
       </form>
 
-      <p className="relative mt-6 text-center text-xs text-teal-100/70">
+      <p className="relative mt-6 text-center text-xs text-ink-mute">
         Accès réservé au personnel BioPlus et aux laboratoires partenaires.
       </p>
-      <p className="relative mt-2 text-center text-xs text-white">
+      <p className="relative mt-2 text-center text-xs text-ink-soft">
         Votre laboratoire n'est pas encore inscrit ?{' '}
-        <Link to="/register" className="font-bold underline underline-offset-2 hover:text-teal-200">
+        <Link
+          to="/register"
+          className="font-bold text-brand-ink underline underline-offset-2 hover:no-underline"
+        >
           S'inscrire via le QR code
         </Link>
       </p>
