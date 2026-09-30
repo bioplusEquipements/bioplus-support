@@ -197,7 +197,7 @@ export default function ClientDetail() {
 
   if (!labo)
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+      <div className="flex flex-col">
         <p className="card text-sm text-red-700">{error ?? 'Client introuvable.'}</p>
         <Link to="/clients" className="btn-outline mt-3 w-full">
           Retour au portefeuille
@@ -206,35 +206,35 @@ export default function ClientDetail() {
     );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
-      <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 via-emerald-700 to-green-700 p-4 text-white shadow-lg shadow-teal-900/20">
-        <Link to="/clients" className="text-xs font-semibold text-teal-100 hover:underline">
+    <div className="flex flex-col">
+      <header className="mb-5">
+        <Link to="/clients" className="text-sm font-semibold text-brand-ink hover:underline">
           ← Portefeuille clients
         </Link>
-        <div className="mt-2 flex items-center gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/20 text-lg font-bold backdrop-blur">
+        <div className="mt-3 flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-brand-soft text-lg font-bold text-brand-ink">
             {initials(labo.nom)}
           </div>
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-lg font-bold">{labo.nom}</h1>
-            <p className="truncate text-xs text-teal-100">
+            <h1 className="truncate text-xl font-bold text-ink">{labo.nom}</h1>
+            <p className="truncate text-sm text-ink-soft">
               {[labo.ville, labo.adresse, labo.telephone].filter(Boolean).join(' · ') || '—'}
             </p>
-            <p className="text-[10px] text-teal-100/80">
+            <p className="text-xs text-ink-mute">
               Client depuis le {new Date(labo.created_at).toLocaleDateString('fr-FR')}
             </p>
           </div>
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2">
+        <div className="mt-4 grid grid-cols-4 gap-2">
           {[
-            [stats.total, 'Réclamations', 'text-white'],
-            [automates.length, 'Machines', 'text-white'],
-            [stats.enAttente, 'En attente', 'text-amber-200'],
-            [stats.critiques, 'Critiques', 'text-red-300']
+            [stats.total, 'Réclamations', 'text-ink'],
+            [automates.length, 'Machines', 'text-ink'],
+            [stats.enAttente, 'En attente', 'text-amber-600'],
+            [stats.critiques, 'Critiques', 'text-red-600']
           ].map(([n, l, c]) => (
-            <div key={l as string} className="rounded-xl bg-white/10 px-1 py-2 text-center">
-              <p className={`text-lg font-bold leading-tight ${c as string}`}>{n as number}</p>
-              <p className="text-[10px] text-white/70">{l as string}</p>
+            <div key={l as string} className="rounded-card border border-line bg-surface px-1 py-2.5 text-center">
+              <p className={`tnum text-lg font-bold leading-tight ${c as string}`}>{n as number}</p>
+              <p className="text-[10px] text-ink-mute">{l as string}</p>
             </div>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import { friendlyAuthError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import Spinner from '../components/Spinner';
 import Logo from '../components/Logo';
@@ -33,7 +34,7 @@ export default function Login() {
       await signIn(email, password);
       navigate(redirect, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connexion impossible.');
+      setError(friendlyAuthError(err));
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +49,7 @@ export default function Login() {
     });
     setResetBusy(false);
     if (err) {
-      setResetMsg(err.message);
+      setResetMsg(friendlyAuthError(err, 'Envoi du lien impossible. Réessaie dans quelques minutes.'));
     } else {
       setResetSent(true);
     }

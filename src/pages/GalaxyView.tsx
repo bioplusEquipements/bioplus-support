@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { C, relTime } from '../lib/galacticos';
 
@@ -44,8 +43,6 @@ const STATUT_COLOR: Record<string, string> = {
 };
 
 export default function GalaxyView() {
-  const { user, signOut } = useAuth();
-  const navigate = useNavigate();
 
   const [automates, setAutomates] = useState<GalaxyAutomate[]>([]);
   const [labos, setLabos] = useState<GalaxyLabo[]>([]);
@@ -123,31 +120,19 @@ export default function GalaxyView() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05080F] text-slate-300 antialiased">
-      <header className="sticky top-0 z-10 border-b border-cyan-400/10 bg-[#05080F]/85 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <Link to="/dashboard" className="text-[11px] font-semibold tracking-widest text-cyan-400/80 transition hover:text-cyan-300">
-            ← CENTRE DE CONTRÔLE
-          </Link>
-          <p className="hidden text-[10px] uppercase tracking-[0.3em] text-slate-500 sm:block">
-            Galaxy View · Réseau en temps réel
-          </p>
-          <div className="flex items-center gap-2">
-            {user && (
-              <span className="hidden text-[10px] text-slate-600 md:inline">{user.email}</span>
-            )}
-            <button
-              onClick={async () => {
-                await signOut();
-                navigate('/login', { replace: true });
-              }}
-              className="rounded-lg bg-[#FF0054]/10 px-3 py-1.5 text-[11px] font-semibold text-[#FF0054] transition hover:bg-[#FF0054]/20"
-            >
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="relative flex flex-col text-slate-300 antialiased">
+      {/* Identite et deconnexion sont desormais dans le Layout. */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/dashboard"
+          className="text-[11px] font-semibold tracking-widest text-cyan-400/80 transition hover:text-cyan-300"
+        >
+          ← CENTRE DE CONTRÔLE
+        </Link>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+          Galaxy View · Réseau en temps réel
+        </p>
+      </div>
 
       <main className="relative mx-auto max-w-7xl px-4 py-5 lg:px-6">
         {automates.length === 0 ? (

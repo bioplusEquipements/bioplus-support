@@ -75,7 +75,7 @@ export default function Alarms() {
   const valides = recipients.filter((r) => r.statut === 'valide').length;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+    <div className="flex flex-col">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Alertes par email</h1>

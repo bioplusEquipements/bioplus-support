@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { edge } from '../lib/edge';
 import { useAuth } from '../contexts/AuthContext';
-import { useGalacticos, setUiMode } from '../hooks/useGalacticos';
-import Logo from '../components/Logo';
+import { useGalacticos } from '../hooks/useGalacticos';
 import { supabase, type Laboratoire, type TicketWithAutomate, type Statut, type Priorite } from '../lib/supabaseClient';
 import { STATUT_STYLES, PRIORITE_STYLES } from '../lib/styles';
 import Spinner from '../components/Spinner';
@@ -21,8 +20,7 @@ export default function Dashboard() {
 }
 
 function ClassicDashboard() {
-  const { profile, user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { profile, user } = useAuth();
 
   const [laboratoire, setLaboratoire] = useState<Laboratoire | null>(null);
   const [tickets, setTickets] = useState<TicketWithAutomate[]>([]);
@@ -34,7 +32,6 @@ function ClassicDashboard() {
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [alarmPendingCount, setAlarmPendingCount] = useState<number | null>(null);
   const [live, setLive] = useState(0);
-  const [modeError, setModeError] = useState<string | null>(null);
   const [assignedPage, setAssignedPage] = useState(1);
   const [laboPage, setLaboPage] = useState(1);
   const PAGE_SIZE = 10;
@@ -159,51 +156,21 @@ function ClassicDashboard() {
     return { total, pageItems: tickets.slice(start, start + PAGE_SIZE) };
   }, [tickets, laboPage]);
 
-  async function handleLogout() {
-    await signOut();
-    navigate('/login', { replace: true });
-  }
-
-  async function handleGoGalacticos() {
-    setModeError(null);
-    try {
-      await setUiMode('galacticos');
-      window.location.reload();
-    } catch (e) {
-      setModeError(e instanceof Error ? e.message : 'Erreur inconnue');
-    }
-  }
-
   function renderHeader() {
     return (
-      <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-4 text-white shadow-lg shadow-teal-900/20">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <Logo size={44} className="shrink-0" />
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-bold">BioPlus Support</h1>
-              <p className="truncate text-xs font-medium text-teal-100">
-                {profile?.role === 'responsable'
-                  ? `${laboratoire?.nom ?? 'Profil non rattaché'} · Client`
-                  : 'BioPlus · Service Technique'}
-              </p>
-            </div>
+      <header className="mb-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="page-title text-xl font-bold text-ink">Tableau de bord</h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              {profile?.role === 'responsable'
+                ? `${laboratoire?.nom ?? 'Profil non rattaché'} · Vue client`
+                : 'BioPlus · Service Technique'}
+            </p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              onClick={handleGoGalacticos}
-              title="Basculer vers l'interface GalacticOS (Command Center, Galaxy View…)"
-              className="shrink-0 rounded-lg border border-white/40 bg-transparent px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15"
-            >
-              ✦ Mode GalacticOS
-            </button>
-            <button
-              onClick={handleLogout}
-              className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/25"
-            >
-              Déconnexion
-            </button>
-          </div>
+          <Link to="/ticket/new" className="btn-primary shrink-0">
+            Nouveau ticket
+          </Link>
         </div>
       </header>
     );
@@ -212,12 +179,8 @@ function ClassicDashboard() {
   if (loading) return <Spinner label="Chargement du tableau de bord..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+    <div className="flex flex-col">
       {renderHeader()}
-
-      {modeError && (
-        <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{modeError}</p>
-      )}
 
       {profile?.statut === 'en_attente' && (
         <div className="card mb-4 border-amber-200 bg-amber-50">

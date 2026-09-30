@@ -131,7 +131,7 @@ function ClassicTicketDetail() {
 
   if (!ticket) {
     return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+      <div className="flex flex-col">
         <div className="card border-red-200 bg-red-50">
           <p className="text-sm font-medium text-red-700">{error}</p>
         </div>
@@ -143,7 +143,7 @@ function ClassicTicketDetail() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+    <div className="flex flex-col">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Ticket</h1>

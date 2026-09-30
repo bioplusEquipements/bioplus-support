@@ -162,9 +162,9 @@ export default function Clients() {
 
   function miniStat(nombre: number, label: string, color: string) {
     return (
-      <div className="rounded-xl bg-white/10 px-1 py-2 text-center">
-        <p className={`text-lg font-bold leading-tight ${color}`}>{nombre}</p>
-        <p className="text-[10px] text-white/70">{label}</p>
+      <div className="rounded-card border border-line bg-surface px-1 py-2.5 text-center">
+        <p className={`tnum text-lg font-bold leading-tight ${color}`}>{nombre}</p>
+        <p className="text-[10px] text-ink-mute">{label}</p>
       </div>
     );
   }
@@ -255,27 +255,24 @@ export default function Clients() {
     return <Spinner label="Chargement du portefeuille clients..." />;
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
-      <header className="mb-4 overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 to-emerald-700 p-4 text-white shadow-lg shadow-teal-900/20">
-        <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col">
+      <header className="mb-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="page-title text-lg font-bold">Portefeuille clients</h1>
-            <p className="mt-0.5 truncate text-xs text-teal-100">
+            <h1 className="page-title text-xl font-bold text-ink">Portefeuille clients</h1>
+            <p className="mt-1 text-sm text-ink-soft">
               {stats.length} client(s) · {totalMachines} machine(s) · {totalTickets} réclamation(s)
             </p>
           </div>
-          <button
-            onClick={exportAll}
-            className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/25"
-          >
+          <button onClick={exportAll} className="btn-outline shrink-0">
             Export CSV
           </button>
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2">
-          {miniStat(stats.length, 'Clients', 'text-white')}
-          {miniStat(totalMachines, 'Machines', 'text-white')}
-          {miniStat(enAttente, 'En attente', 'text-amber-200')}
-          {miniStat(critiques, 'Critiques', 'text-red-300')}
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {miniStat(stats.length, 'Clients', 'text-ink')}
+          {miniStat(totalMachines, 'Machines', 'text-ink')}
+          {miniStat(enAttente, 'En attente', 'text-amber-600')}
+          {miniStat(critiques, 'Critiques', 'text-red-600')}
         </div>
       </header>
 

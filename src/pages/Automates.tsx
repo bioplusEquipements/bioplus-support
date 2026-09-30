@@ -195,7 +195,7 @@ export default function Automates() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 p-4 lg:max-w-6xl lg:p-8">
+    <div className="flex flex-col">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-slate-900 page-title">Parc d'automates</h1>

@@ -19,7 +19,7 @@ const STATUT_LABELS: Record<Statut, string> = {
 export default function IncidentEvent() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile } = useAuth();
 
   const [ticket, setTicket] = useState<TicketWithAutomate | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -174,7 +174,7 @@ export default function IncidentEvent() {
   const year = new Date(ticket.created_at).getFullYear();
 
   return (
-    <div className="min-h-screen bg-[#05080F] text-slate-300 antialiased">
+    <div className="relative flex flex-col text-slate-300 antialiased">
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 opacity-[0.06]"
@@ -185,32 +185,18 @@ export default function IncidentEvent() {
         }}
       />
 
-      <header className="sticky top-0 z-10 border-b border-cyan-400/10 bg-[#05080F]/85 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <Link to="/dashboard" className="text-[11px] font-semibold tracking-widest text-cyan-400/80 transition hover:text-cyan-300">
-            ← CENTRE DE CONTRÔLE
-          </Link>
-          <p className="hidden text-[10px] uppercase tracking-[0.3em] text-slate-500 sm:block">
-            Incident Event
-          </p>
-          <div className="flex items-center gap-2">
-            {user && (
-              <span className="hidden text-[10px] text-slate-600 md:inline">{user.email}</span>
-            )}
-            <button
-              onClick={async () => {
-                await signOut();
-                navigate('/login', { replace: true });
-              }}
-              className="rounded-lg bg-[#FF0054]/10 px-3 py-1.5 text-[11px] font-semibold text-[#FF0054] transition hover:bg-[#FF0054]/20"
-            >
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* Identite et deconnexion sont desormais dans le Layout. */}
+      <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/dashboard"
+          className="text-[11px] font-semibold tracking-widest text-cyan-400/80 transition hover:text-cyan-300"
+        >
+          ← CENTRE DE CONTRÔLE
+        </Link>
+        <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Incident Event</p>
+      </div>
 
-      <main className="relative mx-auto max-w-6xl space-y-4 px-4 py-5 lg:px-6">
+      <main className="relative space-y-4">
         {/* EN-TÊTE INCIDENT */}
         <section className="rounded-xl border border-cyan-400/10 bg-[#0B1220]/80 p-5 shadow-lg shadow-black/40">
           <div className="flex flex-wrap items-start justify-between gap-4">

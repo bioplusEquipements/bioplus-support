@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, type UiMode } from '../lib/supabaseClient';
-import { setUiMode } from '../hooks/useGalacticos';
+import { supabase } from '../lib/supabaseClient';
 import {
   C,
   LEVEL_META,
@@ -43,15 +42,14 @@ interface FleetIntervention {
 }
 
 export default function CommandCenter() {
-  const { profile, user, signOut } = useAuth();
-  const navigate = useNavigate();
+  const { profile, user } = useAuth();
 
   const [automates, setAutomates] = useState<FleetAutomate[]>([]);
   const [tickets, setTickets] = useState<FleetTicket[]>([]);
   const [interventions, setInterventions] = useState<FleetIntervention[]>([]);
   const [loading, setLoading] = useState(true);
   const [live, setLive] = useState(0);
-  const [switchError, setSwitchError] = useState<string | null>(null);
+  const [switchError] = useState<string | null>(null);
 
   useEffect(() => {
     const channel = supabase
@@ -185,24 +183,9 @@ export default function CommandCenter() {
           ? `LABORATOIRE ${profile.laboratoire_nom.toUpperCase()}`
           : 'LABORATOIRE — NON RATTACHÉ';
 
-  async function handleSetMode(mode: UiMode) {
-    setSwitchError(null);
-    try {
-      await setUiMode(mode);
-      window.location.reload();
-    } catch (e) {
-      setSwitchError(e instanceof Error ? e.message : 'Erreur inconnue');
-    }
-  }
-
-  async function handleLogout() {
-    await signOut();
-    navigate('/login', { replace: true });
-  }
-
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#05080F] text-slate-300">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center text-slate-300">
         <div className="h-2 w-2 animate-pulse rounded-full bg-[#00E5FF] shadow-[0_0_12px_#00E5FF]" />
         <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-cyan-400/60">
           Connexion au centre de contrôle…
@@ -214,7 +197,7 @@ export default function CommandCenter() {
   const { counts, fleetHealth, top5, criticalSignals, days, maxDay, recentOperations } = stats;
 
   return (
-    <div className="min-h-screen bg-[#05080F] font-sans text-slate-300 antialiased">
+    <div className="relative flex flex-col text-slate-300 antialiased">
       {/* fond : grille technique subtile */}
       <div
         aria-hidden
@@ -226,54 +209,40 @@ export default function CommandCenter() {
         }}
       />
 
-      <header className="sticky top-0 z-10 border-b border-cyan-400/10 bg-[#05080F]/85 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center">
-              <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-[#00FFA3]/40" />
-              <span className="h-2 w-2 rounded-full bg-[#00FFA3] shadow-[0_0_10px_#00FFA3]" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold tracking-widest text-slate-100">
-                BIOPLUS <span className="text-[#00E5FF]">GALACTICOS</span>
-              </p>
-              <p className="truncate text-[9px] uppercase tracking-[0.3em] text-slate-500">
-                Technical Operations Center
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden rounded border border-emerald-400/30 bg-emerald-400/5 px-2 py-1 text-[9px] font-semibold tracking-widest text-[#00FFA3] sm:inline">
-              ● NETWORK ONLINE
-            </span>
-            <span className="hidden rounded border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 text-[9px] tracking-widest text-cyan-300/80 md:inline">
-              {scopeLabel}
-            </span>
-            <Link
-              to="/galaxy"
-              className="rounded-lg border border-cyan-400/30 px-3 py-1.5 text-[11px] font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
-            >
-              ✦ GALAXY
-            </Link>
-            <button
-              onClick={() => handleSetMode('classic')}
-              className="rounded-lg border border-slate-600/60 px-3 py-1.5 text-[11px] font-semibold text-slate-300 transition hover:border-slate-400 hover:text-white"
-            >
-              Mode classique
-            </button>
-            <button
-              onClick={handleLogout}
-              className="rounded-lg bg-[#FF0054]/10 px-3 py-1.5 text-[11px] font-semibold text-[#FF0054] transition hover:bg-[#FF0054]/20"
-            >
-              Déconnexion
-            </button>
+      {/* Identite, statut reseau et deconnexion sont desormais dans le Layout. */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-2.5 w-2.5 shrink-0 items-center justify-center">
+            <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-[#00FFA3]/40" />
+            <span className="h-2 w-2 rounded-full bg-[#00FFA3] shadow-[0_0_10px_#00FFA3]" />
+          </span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold tracking-widest text-slate-100">
+              BIOPLUS <span className="text-[#00E5FF]">GALACTICOS</span>
+            </p>
+            <p className="truncate text-[9px] uppercase tracking-[0.3em] text-slate-500">
+              Technical Operations Center
+            </p>
           </div>
         </div>
-      </header>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <span className="hidden rounded border border-emerald-400/30 bg-emerald-400/5 px-2 py-1 text-[9px] font-semibold tracking-widest text-[#00FFA3] sm:inline">
+            ● NETWORK ONLINE
+          </span>
+          <span className="hidden rounded border border-cyan-400/20 bg-cyan-400/5 px-2 py-1 text-[9px] tracking-widest text-cyan-300/80 md:inline">
+            {scopeLabel}
+          </span>
+          <Link
+            to="/galaxy"
+            className="rounded-lg border border-cyan-400/30 px-3 py-1.5 text-[11px] font-semibold text-cyan-300 transition hover:bg-cyan-400/10"
+          >
+            ✦ GALAXY
+          </Link>
+        </div>
+      </div>
 
-      <main className="relative mx-auto max-w-7xl space-y-4 px-4 py-5 lg:px-6">
-        {switchError && (
-          <p className="rounded-lg border border-[#FF0054]/30 bg-[#FF0054]/10 px-3 py-2 text-xs text-[#FFB703]">
+      {switchError && (
+        <p className="mb-4 rounded-lg border border-[#FF0054]/30 bg-[#FF0054]/10 px-3 py-2 text-xs text-[#FFB703]">
             {switchError}
           </p>
         )}
@@ -498,7 +467,6 @@ export default function CommandCenter() {
             </p>
           )}
         </footer>
-      </main>
     </div>
   );
 }
