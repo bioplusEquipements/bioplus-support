@@ -1,0 +1,158 @@
+name: Keepalive Supabase
+
+# SOLUTION GRATUITE au probleme "Failed to fetch".
+#
+# Supabase met automatiquement en pause les projets Free Plan inactifs depuis 7 jours.
+# Un projet en pause ne resout plus en DNS (NXDOMAIN) => l'app renvoie "Failed to fetch".
+# Ce workflow interroge Postgres via PostgREST pour prouver que le projet est actif.
+#
+# Cout : 0 EUR. Un repo public a des minutes Actions illimitees.
+# Secrets utilises : VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY ( deja presents ).
+#
+# Deux pieges evites :
+#  1. On interroge /rest/v1/<table> et NON /auth/v1/health. Seul un appel qui atteint
+#     Postgres compte comme activite (les policies RLS sont evaluees dans la base).
+#     Un ping /auth/v1/health renvoie 200 sans toucher la base : vert au log, projet
+#     toujours pause.
+#  2. Sur un repo public, GitHub desactive automatiquement les workflows planifies apres
+#     60 jours sans activite du repo. Le job "keep-workflow-alive" reactive le workflow
+#     via l'API avant que ca n'arrive, sans commit bidon.
+
+on:
+  schedule:
+    # 4 fois par jour, minute 23 pour eviter l'embouteillage des crons a :00
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Ping
+        id: ping
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Secrets VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY absents."
+            exit 1
+          fi
+
+          echo "Ping -> ${SUPABASE_URL}/rest/v1/app_settings?select=key&limit=1"
+
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' \
+            --max-time 30 --retry 2 --retry-delay 3 \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            "${SUPABASE_URL}/rest/v1/app_settings?select=key&limit=1") || true
+
+          body=$(head -c 400 /tmp/body 2>/dev/null || echo '')
+
+          if [ "$code" = "200" ]; then
+            echo "OK (200) - projet actif. Reponse: ${body}"
+            exit 0
+          fi
+
+          if [ "$code" = "000" ]; then
+            echo "::error::Hote injoignable (DNS/reseau). Projet probablement EN PAUSE ou supprime. Correctif : https://supabase.com/dashboard/projects/bzodbqioldzdyupzoljx -> Resume project"
+            exit 1
+          fi
+
+          echo "::error::Reponse inattendue HTTP ${code} - ${body}"
+          exit 1
+
+      # Alerte 100% gratuite : ouvre (ou commente) une Issue dans le repo quand le
+      # projet est injoignable. Ne depend ni d'un email ni d'un service tiers.
+      - name: Ouvrir l'issue d'incident
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[URGENT] Projet Supabase injoignable (bzodbqioldzdyupzoljx)';
+            const body = [
+              'Le keepalive n\'a pas reussi a joindre le projet Supabase.',
+              '',
+              `- Run : ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              `- Workflow : ${context.workflow}`,
+              '',
+              '**Action :** ouvrir le projet et cliquer **Resume project**.',
+              'https://supabase.com/dashboard/projects/bzodbqioldzdyupzoljx',
+              '',
+              '_Cette issue sera automatiquement fermee au prochain ping reussi._',
+            ].join('\n');
+
+            const marker = `<!-- keepalive-incident -->`;
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            const found = existing.data.find((i) => i.title === title);
+
+            if (found) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: found.number,
+                body: `${marker}\nLe projet est toujours injoignable.\n\n${body}`,
+              });
+              core.warning(`Issue #${found.number} commentaire.`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: `${marker}\n${body}`,
+              });
+              core.warning(`Issue #${created.data.number} ouverte.`);
+            }
+
+      - name: Cloturer l'incident si le ping est passe
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[URGENT] Projet Supabase injoignable (bzodbqioldzdyupzoljx)';
+            const { data: open } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            for (const issue of open.filter((i) => i.title === title)) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                state: 'closed',
+              });
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Projet de nouveau joignable le ${new Date().toISOString()}. Incident clos automatiquement.`,
+              });
+              core.info(`Issue #${issue.number} fermee.`);
+            }
+
+  keep-workflow-alive:
+    # Empeche GitHub de desactiver ce workflow apres 60 jours d'inactivite du repo.
+    name: Keep scheduled workflow enabled
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: liskin/gh-workflow-keepalive@v1
